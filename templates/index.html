@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Ranking National Science Battles 2025</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        h2 { color: #555; border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-top: 30px; }
+        ul { list-style: none; padding: 0; }
+        li { margin-bottom: 10px; }
+        a { text-decoration: none; color: #007bff; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Live Ranking National Science Battles 2025</h1>
+
+    <h2>Интерфейс Жюри</h2>
+    <p>Для ввода баллов используйте: <a href="{{ url_for('jury_input') }}">Форма ввода баллов</a></p>
+
+    <h2>Live Рейтинги для Зрителей</h2>
+    {% set tournaments = ['APhB', 'NChB', 'AMB'] %} 
+    {% set leagues = ['Senior', 'Junior'] %}
+    {% for tour_name in tournaments %}
+        <h3>{{ tour_name }}</h3>
+        <ul>
+            {% for level in leagues %}
+                <li>
+                    <a href="{{ url_for('show_ranking', tournament_id=tour_name, league_level=level) }}">
+                        Рейтинг: {{ level }} Лига
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+
+</body>
+</html>

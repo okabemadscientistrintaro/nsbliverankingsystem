@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }} Live Ranking</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f4f9; }
+        h1 { color: #333; text-align: center; padding: 20px; background-color: white; margin: 0; border-bottom: 1px solid #ddd; }
+        .ranking-container { width: 90%; max-width: 1200px; margin: 40px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; font-size: 18px; }
+        th, td { padding: 12px 15px; border: 1px solid #ddd; text-align: center; transition: background-color 0.3s; }
+        th { background-color: #007bff; color: white; position: sticky; top: 0; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        tr:hover { background-color: #f1f1f1; }
+        .rank-column { font-weight: bold; width: 5%; background-color: #e6f7ff !important; }
+        .team-column { text-align: left; width: 25%; }
+        .total-column { font-weight: bold; background-color: #ffe0b2; color: #e65100; font-size: 20px; }
+        .update-info { text-align: center; margin-top: 20px; color: #888; }
+        .updated-row { 
+            transition: background-color 1.5s ease-out; 
+            animation: flash 0.5s ease-in-out; 
+        }
+        @keyframes flash {
+            0% { background-color: #ffeb3b; }
+            50% { background-color: #fff9c4; }
+            100% { background-color: inherit; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏆 {{ title }} Live Ranking</h1>
+
+    <div class="ranking-container">
+        <table id="ranking-table">
+            <thead>
+                <tr>
+                    <th class="rank-column">Место</th>
+                    <th class="team-column">НАЗВАНИЕ КОМАНДЫ</th>
+                    <th>1 тур</th>
+                    <th>2 тур</th>
+                    <th>3 тур</th>
+                    <th>4 тур</th>
+                    <th>5 тур</th>
+                    <th class="total-column">ОБЩИЕ БАЛЛЫ</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+        <p class="update-info">Последнее обновление: <span id="last-update">Ожидание данных...</span></p>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const tournamentId = '{{ tournament_id }}';
+        const leagueLevel = '{{ league_level }}';
+        
+        const socket = io();
+        const tableBody = document.getElementById('ranking-table').querySelector('tbody');
+        const updateTimeSpan = document.getElementById('last-update');
+        let currentRanking = []; 
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const startValue = parseFloat(start) || 0; 
+            const endValue = parseFloat(end);
+            
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const currentValue = startValue + (endValue - startValue) * progress; 
+                obj.textContent = currentValue.toFixed(1);
+
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                     obj.textContent = endValue.toFixed(1);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        socket.on('connect', () => {
+            socket.emit('connect_to_ranking', {
+                tournament_id: tournamentId,
+                league_level: leagueLevel
+            });
+        });
+
+        socket.on('ranking_update', (newRankingData) => {
+            
+            const oldRankingMap = currentRanking.reduce((map, team) => {
+                map[team.team_id] = team.total_score; 
+                return map;
+            }, {});
+            
+            currentRanking = newRankingData;
+            
+            tableBody.innerHTML = ''; 
+
+            newRankingData.forEach(team => {
+                const row = tableBody.insertRow();
+                row.setAttribute('data-team-id', team.team_id);
+
+                const oldScore = oldRankingMap[team.team_id] || 0;
+                const scoreChanged = team.total_score !== oldScore;
+                
+                if (scoreChanged) {
+                    row.classList.add('updated-row'); 
+                    setTimeout(() => row.classList.remove('updated-row'), 1500); 
+
+                    if (team.rank !== oldRankingMap[team.team_id]) {
+                         row.style.borderLeft = '4px solid #007bff';
+                         setTimeout(() => row.style.borderLeft = '', 1500);
+                    }
+                }
+                
+                const rankCell = row.insertCell();
+                rankCell.textContent = team.rank;
+                rankCell.classList.add('rank-column');
+                
+                const teamCell = row.insertCell();
+                teamCell.textContent = team.team_name;
+                teamCell.classList.add('team-column');
+                
+                for (let i = 1; i <= 5; i++) {
+                    const score = team.tour_scores[i] || 0.0;
+                    row.insertCell().textContent = score.toFixed(1); 
+                }
+                
+                const totalCell = row.insertCell();
+                totalCell.classList.add('total-column');
+                
+                if (scoreChanged) {
+                    animateValue(totalCell, oldScore, team.total_score, 1000); 
+                } else {
+                    totalCell.textContent = team.total_score.toFixed(1);
+                }
+            });
+            
+            updateTimeSpan.textContent = new Date().toLocaleTimeString('ru-RU');
+        });
+    </script>
+</body>
+</html>
