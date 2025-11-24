@@ -3,8 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, emit, join_room
 from datetime import datetime
 import json
-import time
-from threading import Thread
 from sqlalchemy import Table, Column, Integer, Float, DateTime, text, select, update, insert
 
 app = Flask(__name__)
@@ -15,14 +13,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'a_very_secret_and_unique_key_for_socketio'
 
 # --- ИСПРАВЛЕНИЕ ОШИБКИ ПОДКЛЮЧЕНИЯ/ТАЙМ-АУТА ПУЛА ---
+# SQLALCHEMY_POOL_PRE_PING = True гарантирует, что соединение тестируется перед использованием.
 app.config['SQLALCHEMY_POOL_PRE_PING'] = True 
+# Уменьшаем время переработки (recycle) до 300 секунд (5 минут), 
+# чтобы избежать тайм-аута сервера БД, который часто составляет 5 минут.
 app.config['SQLALCHEMY_POOL_RECYCLE'] = 300 
 app.config['SQLALCHEMY_POOL_TIMEOUT'] = 10
 # ------------------------------------------------------
 
 db = SQLAlchemy(app)
-# Используем message_queue для поддержки многопоточных/многопроцессных воркеров (если они будут)
-# Для простой работы с threading достаточно `socketio = SocketIO(app)`
 socketio = SocketIO(app)
 
 # ------------------------------------------------------------------
@@ -164,38 +163,15 @@ def calculate_ranking(tournament_id, league_level):
 
 def broadcast_ranking(tournament_id, league_level):
     """Отправляет обновленный рейтинг в нужный SocketIO канал."""
-    # Оборачиваем в контекст приложения, т.к. может вызываться вне запроса (напр., из jury_input)
-    with app.app_context():
-        ranking_data = calculate_ranking(tournament_id, league_level)
-        channel_name = f'ranking_{tournament_id}_{league_level}'
-        
-        socketio.emit('ranking_update', ranking_data, room=channel_name)
-        print(f"Обновление отправлено в канал: {channel_name}")
-
-
-# ------------------------------------------------------------------
-# 4. ЛОГИКА ДЛЯ ДАШБОРДА (Новая функция)
-# ------------------------------------------------------------------
-
-def get_all_rankings_data():
-    """Собирает данные для всех 6 рейтингов для дашборда. Используется в фоновом потоке."""
-    dashboard_data = {}
+    ranking_data = calculate_ranking(tournament_id, league_level)
+    channel_name = f'ranking_{tournament_id}_{league_level}'
     
-    for tour_id, level in ALL_COMBINATIONS:
-        # calculate_ranking уже вызывает db.session.remove()
-        ranking = calculate_ranking(tour_id, level) 
-        key = f'{tour_id}_{level}'
-        dashboard_data[key] = {
-            'title': f'{tour_id} ({level})',
-            'data': ranking,
-            'tournament_id': tour_id,
-            'league_level': level
-        }
-            
-    return dashboard_data
+    socketio.emit('ranking_update', ranking_data, room=channel_name)
+    print(f"Обновление отправлено в канал: {channel_name}")
+
 
 # ------------------------------------------------------------------
-# 5. МАРШРУТЫ И SOCKETIO
+# 4. МАРШРУТЫ И SOCKETIO
 # ------------------------------------------------------------------
 
 @socketio.on('connect_to_ranking')
@@ -210,7 +186,7 @@ def handle_connect_to_ranking(data):
         
         print(f"Клиент присоединился к комнате: {channel_name}")
         
-        # Отправка текущих данных клиенту сразу после подключения
+        # calculate_ranking будет вызван, и db.session.remove() очистит соединение
         ranking_data = calculate_ranking(tournament_id, league_level)
         emit('ranking_update', ranking_data, room=request.sid)
 
@@ -233,12 +209,22 @@ def show_ranking(tournament_id, league_level):
 
 @app.route('/all_rankings')
 def all_rankings_dashboard():
-    """
-    Показывает пустой шаблон дашборда. 
-    Данные будут загружены по Socket.IO через событие 'dashboard_update'.
-    """
-    # Удален вызов get_all_rankings_data() — теперь это делает фоновый поток.
+    """Собирает данные для всех 6 рейтингов для дашборда."""
+    
+    dashboard_data = {}
+    
+    for tour_id, level in ALL_COMBINATIONS:
+        key = f'{tour_id}_{level}'
+        ranking = calculate_ranking(tour_id, level)
+        dashboard_data[key] = {
+            'title': f'{tour_id} ({level})',
+            'data': ranking,
+            'tournament_id': tour_id,
+            'league_level': level
+        }
+            
     return render_template('all_rankings_dashboard.html', 
+                           data=dashboard_data, 
                            tournaments=TOURNAMENTS,
                            leagues=LEAGUES)
 
@@ -247,6 +233,7 @@ def all_rankings_dashboard():
 def get_teams(tournament_id, league_level):
     """Возвращает команды для AJAX-запроса, загружая их из JSON."""
     
+    # Теперь данные загружаются из файлов
     teams = load_teams_from_json(tournament_id, league_level)
     return jsonify(teams)
 
@@ -327,11 +314,8 @@ def jury_input():
         # Возвращаем соединение в пул сразу после записи
         db.session.remove()
         
-        # 4. Отправка обновления для одного рейтинга (страница /ranking)
+        # 4. Отправка обновления
         broadcast_ranking(tour_broadcast, level_broadcast)
-        
-        # Отправка сигнала для фонового потока, чтобы обновить дашборд немедленно
-        # В данном случае, мы полагаемся на 5-секундный интервал фонового потока
         
         return jsonify({"success": True, "message": message})
         
@@ -340,32 +324,7 @@ def jury_input():
 
 
 # ------------------------------------------------------------------
-# 6. ФОНОВЫЙ ПОТОК ДЛЯ DASHBOARD
-# ------------------------------------------------------------------
-
-def background_dashboard_task():
-    """Отправляет обновленные данные дашборда по Socket.IO каждые 5 секунд."""
-    # Обязательно используем контекст приложения для операций с БД/приложением в потоке
-    with app.app_context():
-        while True:
-            try:
-                # Получаем агрегированные данные
-                dashboard_data = get_all_rankings_data() 
-                
-                # Отправляем данные всем подключенным клиентам, слушающим событие 'dashboard_update'
-                socketio.emit('dashboard_update', dashboard_data)
-                
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] Обновление дашборда отправлено.")
-
-            except Exception as e:
-                # Используйте логгер вместо print в продакшене
-                print(f"Ошибка при обновлении дашборда: {e}")
-                
-            # Пауза в 5 секунд перед следующим обновлением
-            time.sleep(5) 
-
-# ------------------------------------------------------------------
-# 7. ЗАПУСК ПРИЛОЖЕНИЯ
+# 5. ЗАПУСК ПРИЛОЖЕНИЯ
 # ------------------------------------------------------------------
 
 with app.app_context():
@@ -375,10 +334,4 @@ with app.app_context():
     print("6 таблиц Score готовы. Зайдите в /jury_input для ввода баллов.")
 
 if __name__ == '__main__':
-    # Запускаем фоновый поток для обновления дашборда
-    dashboard_thread = Thread(target=background_dashboard_task)
-    dashboard_thread.daemon = True # Поток завершится при завершении основного процесса
-    dashboard_thread.start()
-    
-    # Запускаем приложение с SocketIO
     socketio.run(app, debug=True)

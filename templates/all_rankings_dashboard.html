@@ -3,271 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Дашборд Рейтингов | ТОП-10</title>
-    <!-- Подключение Tailwind CSS -->
+    <title>Дашборд Всех Рейтингов | NSB Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Подключение Socket.IO клиента -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    
+    <!-- Подключение Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    // Определение основных цветов
+                    colors: {
+                        'primary': '#8045FF', // Основной цвет
+                        'primary-light': '#9B70FF', // Для эффектов наведения
+                        'primary-dark': '#6A37D0', // Для темного акцента
+                        'background-light': '#F8F8FF', // Светлый фон
+                        'text-dark': '#1F2937', // Темный текст
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        /* Настройка шрифта Inter */
-        html { font-family: 'Inter', sans-serif; }
-        
-        /* Пользовательские цвета турниров */
-        /* APhB: 8045FF (Фиолетовый) */
-        .color-APhB { --main-color: #8045FF; --light-bg: #F5F3FF; } 
-        /* NChB: 259BC0 (Голубой) */
-        .color-NChB { --main-color: #259BC0; --light-bg: #F0F9FF; } 
-        /* AMB: 415EDF (Синий) */
-        .color-AMB  { --main-color: #415EDF; --light-bg: #EFF6FF; } 
-        
-        /* Применение переменных */
-        .card-header {
-            background-color: var(--light-bg);
-            /* Градиент как на образце, используя основной цвет */
-            background-image: linear-gradient(180deg, var(--light-bg) 0%, rgba(255, 255, 255, 0) 100%);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05); /* Легкий разделитель */
+        body {
+            background-color: theme('colors.background-light');
+            min-height: 100vh;
         }
-        .tournament-title {
-            color: var(--main-color);
+        .ranking-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        .rank-highlight {
-             background-color: var(--main-color);
-             color: white;
-             font-weight: 600;
+        .ranking-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(128, 69, 255, 0.3);
         }
-        .score-total {
-            color: var(--main-color);
-            font-weight: bold;
+        /* Анимация для заголовка */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
-        /* Стиль таблицы */
-        .ranking-table th {
-            @apply px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 bg-gray-50;
-        }
-        .ranking-table td {
-            @apply px-3 py-2 whitespace-nowrap text-sm text-gray-700;
+        .animated-header {
+            animation: fadeInDown 0.6s ease-out;
         }
     </style>
 </head>
-<body class="bg-gray-100 p-4 sm:p-8">
-
-    <!-- Заголовок, вдохновленный вашим образцом -->
-    <header class="mb-10 text-center">
-        <h1 class="text-4xl sm:text-5xl font-extrabold text-[#8045FF] mb-2" style="text-shadow: 0 0 5px rgba(128, 69, 255, 0.2);">
-            National Science Battles 2025 - Рейтинги Команд
+<body class="p-4 sm:p-8">
+    <header class="text-center mb-10 animated-header">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-primary-dark mb-2">
+            <i class=" mr-3"></i> National Science Battles 2025 - Рейтинги Команд
         </h1>
-        <p class="text-gray-500 text-sm sm:text-base">Сводка по всем турнирам и лигам в реальном времени</p>
-        
-        <nav class="mt-6 flex justify-center space-x-4">
-            <a href="/jury_input" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-md text-sm sm:text-base">
-                Ввод Баллов Жюри
-            </a>
-            <a href="/" class="text-indigo-600 border border-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition-colors text-sm sm:text-base">
-                Главная
-            </a>
-        </nav>
+        <p class="text-lg text-gray-600">Сводка по всем турнирам и лигам в реальном времени</p>
     </header>
 
-    <!-- Контейнер для всех 6 рейтингов -->
-    <div id="rankings-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
-        
-        <!-- Сообщение о загрузке/ошибке -->
-        <div id="loading-status" class="col-span-full p-6 bg-white rounded-xl shadow-lg border border-indigo-300 text-center">
-            <div class="flex items-center justify-center space-x-3">
-                <svg class="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p class="text-lg text-indigo-700">Ожидание данных рейтинга по Socket.IO...</p>
-            </div>
-            <p id="error-message" class="text-red-500 mt-2 hidden">
-                Ошибка: Не удалось загрузить данные. Проверьте консоль.
-            </p>
-        </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {% for key, item in data.items() %}
+            <div class="ranking-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-primary-light">
+                <h2 class="text-2xl font-bold mb-4 text-text-dark border-b pb-2 border-gray-100">
+                    {{ item.title }}
+                </h2>
+                
+                <ol class="space-y-3">
+                    {# FIX: Используем прямой синтаксис среза списка [::5] для большей надежности #}
+                    {% for team in item.data[:5] %} 
+                        <li class="flex justify-between items-center text-lg {% if team.rank == 1 %} font-extrabold text-primary-dark bg-primary-light/10 p-2 rounded-lg {% endif %}">
+                            <span class="w-1/12 text-center text-xl">{{ team.rank }}.</span>
+                            <span class="w-8/12 truncate text-text-dark">{{ team.team_name }}</span>
+                            {# Форматирование балла до одного знака после запятой #}
+                            <span class="w-3/12 text-right font-mono text-xl">{{ "%.1f" | format(team.total_score) }}</span>
+                        </li>
+                    {% endfor %}
+                </ol>
 
+                <div class="mt-5 text-center">
+                    {# Предполагаем, что url_for('show_ranking') требует tournament_id и league_level #}
+                    <a href="{{ url_for('show_ranking', tournament_id=item.tournament_id, league_level=item.league_level) }}" 
+                       class="inline-block px-4 py-2 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-primary-light transition duration-200 shadow-md">
+                        Показать Полный Рейтинг
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            {# Сообщение, если переменная 'data' пуста (нет рейтингов для отображения) #}
+            <div class="lg:col-span-2 xl:col-span-3 text-center py-12 bg-white rounded-xl shadow-lg border-t-4 border-red-400">
+                <p class="text-xl text-red-700 font-semibold mb-2">
+                    <i class="fas fa-bug mr-2"></i> Ошибка Загрузки Данных
+                </p>
+                <p class="text-lg text-gray-600">
+                    Не удалось загрузить ни одного рейтинга. Проверьте, что функция 
+                    <code class="bg-gray-100 p-1 rounded font-mono">all_rankings_dashboard</code> 
+                    в <code class="bg-gray-100 p-1 rounded font-mono">app.py</code> возвращает непустой словарь в переменную <code class="bg-gray-100 p-1 rounded font-mono">data</code>.
+                </p>
+            </div>
+        {% endfor %}
     </div>
 
+    <footer class="text-center mt-12 text-gray-500 text-sm">
+        <p>Система Рейтинга NSB Live | Работает на PostgreSQL и SocketIO</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
-        const socket = io();
-        const rankingsContainer = document.getElementById('rankings-container');
-        const loadingStatus = document.getElementById('loading-status');
-        const errorMessage = document.getElementById('error-message');
-        
-        // Массив, содержащий 6 комбинаций для отрисовки заголовков
-        const allCombinations = [
-            'APhB_Senior', 'APhB_Junior',
-            'NChB_Senior', 'NChB_Junior',
-            'AMB_Senior', 'AMB_Junior'
-        ];
-        
-        // --- ФУНКЦИИ ОТРИСОВКИ ---
-
-        function formatScore(score) {
-            return parseFloat(score).toFixed(2);
-        }
-        
-        function getTournamentKey(tournamentId) {
-            // Используется для получения CSS класса цвета
-            return tournamentId.toUpperCase();
-        }
-
-        function createRankingTable(data, title, tournamentId, leagueLevel) {
-            const tourKey = getTournamentKey(tournamentId);
-            const limitedData = data.slice(0, 10); // Ограничение до ТОП-10
-            
-            // 1. Создаем основной элемент карточки с классом цвета
-            const card = document.createElement('div');
-            card.id = `ranking-card-${tournamentId}_${leagueLevel}`;
-            // Минималистичный стиль: без теней, легкая рамка
-            card.className = `bg-white rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl border border-gray-200 color-${tourKey} overflow-hidden`;
-
-            // 2. Заголовок
-            const header = document.createElement('div');
-            header.className = 'p-4 card-header';
-            // Используем только объединенный заголовок
-            header.innerHTML = `
-                <h2 class="text-lg font-bold tournament-title">
-                    ${tournamentId} (${leagueLevel})
-                </h2>
-            `;
-            card.appendChild(header);
-
-            // 3. Таблица
-            const tableContainer = document.createElement('div');
-            tableContainer.className = 'overflow-x-auto';
-            
-            const table = document.createElement('table');
-            table.className = 'min-w-full divide-y divide-gray-200 ranking-table';
-            
-            // Заголовки таблицы - минималистичный стиль
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th class="text-gray-600 bg-gray-50">#</th>
-                        <th class="text-gray-600 bg-gray-50">Команда</th>
-                        <th class="text-gray-600 bg-gray-50 text-right">Сумма</th>
-                        <th class="text-gray-600 bg-gray-50 text-center">Т1</th>
-                        <th class="text-gray-600 bg-gray-50 text-center">Т2</th>
-                        <th class="text-gray-600 bg-gray-50 text-center">Т3</th>
-                        <th class="text-gray-600 bg-gray-50 text-center">Т4</th>
-                        <th class="text-gray-600 bg-gray-50 text-center">Т5</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body-${tournamentId}_${leagueLevel}" class="bg-white divide-y divide-gray-100">
-                    <!-- Строки будут вставлены здесь -->
-                </tbody>
-            `;
-            tableContainer.appendChild(table);
-            card.appendChild(tableContainer);
-            
-            // 4. Заполнение строк таблицы
-            const tbody = table.querySelector('tbody');
-            tbody.innerHTML = ''; // Очистка перед заполнением
-            
-            limitedData.forEach((team, index) => {
-                const row = tbody.insertRow();
-                // Легкое чередование строк
-                const rowClass = (index % 2 === 0 ? 'bg-white' : 'bg-gray-50') + ' hover:bg-indigo-50 transition-colors duration-150';
-                row.className = rowClass; 
-                
-                // Колонка # (Место) - с особым стилем
-                const rankCell = row.insertCell();
-                rankCell.textContent = team.rank;
-                rankCell.className = 'text-center';
-                if (team.rank <= 3) {
-                    rankCell.className += ' rank-highlight px-2 rounded-lg'; // Применяем цвет турнира для ТОП-3
-                }
-                
-                // Колонка Команда
-                row.insertCell().innerHTML = `
-                    <div class="font-medium text-gray-900">${team.team_name}</div>
-                    <!-- Удалена дублирующая информация ID, как запрашивалось для минимализма -->
-                `;
-
-                // Колонка Сумма (выделение жирным цветом турнира)
-                const scoreCell = row.insertCell();
-                scoreCell.innerHTML = `<span class="score-total">${formatScore(team.total_score)}</span>`;
-                scoreCell.className = 'text-right'; // Выравнивание вправо
-
-                // Колонки туров
-                for (let i = 1; i <= 5; i++) {
-                    const score = team.tour_scores[i] || 0.0;
-                    const cell = row.insertCell();
-                    cell.textContent = formatScore(score);
-                    cell.className = 'text-center text-gray-700';
-                }
-            });
-
-            // Добавление кнопки "Показать полный рейтинг" (как на образце)
-            const footer = document.createElement('div');
-            footer.className = 'p-4 text-center';
-            footer.innerHTML = `
-                <a href="/ranking/${tournamentId}/${leagueLevel}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white shadow-sm transition-colors"
-                   style="background-color: var(--main-color); hover:background-color: var(--main-color);">
-                   Показать Полный Рейтинг →
-                </a>
-            `;
-            card.appendChild(footer);
-
-            return card;
-        }
-
-        // --- ЛОГИКА SOCKET.IO ---
-
-        // Обработчик события 'dashboard_update'
-        socket.on('dashboard_update', function(data) {
-            
-            // Скрываем статус загрузки и сообщение об ошибке
-            loadingStatus.style.display = 'none';
-            errorMessage.style.display = 'none';
-            
-            let dataReceived = false;
-
-            allCombinations.forEach(key => {
-                if (data[key] && data[key].data.length > 0) {
-                    dataReceived = true;
-                    const { data: rankingData, title, tournament_id, league_level } = data[key];
-                    
-                    // Заголовок карточки
-                    const cardTitle = `${tournament_id} (${league_level})`; 
-                    const cardId = `ranking-card-${tournament_id}_${league_level}`;
-                    
-                    // 1. Создаем новую карточку
-                    const newCard = createRankingTable(rankingData, cardTitle, tournament_id, league_level);
-                    
-                    // 2. Проверяем, существует ли старая карточка
-                    const existingCard = document.getElementById(cardId);
-                    
-                    if (existingCard) {
-                        rankingsContainer.replaceChild(newCard, existingCard);
-                    } else {
-                        rankingsContainer.appendChild(newCard);
-                    }
-                }
-            });
-
-            if (!dataReceived) {
-                console.warn("Сервер отправил пустые массивы данных. Проверьте JSON-файлы команд.");
-                loadingStatus.style.display = 'block';
-                errorMessage.style.display = 'block';
-            }
-        });
-
-        // Обработчик ошибки соединения
-        socket.on('connect_error', (err) => {
-            console.error('Ошибка соединения Socket.IO:', err);
-            loadingStatus.style.display = 'block';
-            errorMessage.style.display = 'block';
-            errorMessage.textContent = 'Ошибка подключения к серверу Socket.IO. Убедитесь, что Flask запущен с socketio.run(app).';
-        });
-
-        // Обработчик успешного соединения
-        socket.on('connect', () => {
-            console.log('Socket.IO успешно подключен.');
-        });
-        
+        // Placeholder for socket connection logic, but dashboard view is primarily server-rendered (no real-time push needed here)
+        // Real-time updates happen on the individual ranking pages.
     </script>
-
 </body>
 </html>
