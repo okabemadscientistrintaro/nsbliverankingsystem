@@ -1,38 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Ranking National Science Battles 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Подключение Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    // Определение основных цветов, как в других шаблонах
+                    colors: {
+                        'primary': '#8045FF', // Основной цвет
+                        'primary-light': '#9B70FF', 
+                        'primary-dark': '#6A37D0', 
+                        'background-light': '#F8F8FF', // Светлый фон
+                        'text-dark': '#1F2937', // Темный текст
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #333; }
-        h2 { color: #555; border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-top: 30px; }
-        ul { list-style: none; padding: 0; }
-        li { margin-bottom: 10px; }
-        a { text-decoration: none; color: #007bff; font-weight: bold; }
-        a:hover { text-decoration: underline; }
+        body {
+            background-color: theme('colors.background-light');
+            min-height: 100vh;
+        }
+        .section-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 5px solid theme('colors.primary-light');
+        }
+        .section-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(128, 69, 255, 0.2);
+        }
+        .link-button {
+            display: inline-block;
+            padding: 10px 15px;
+            margin-top: 8px;
+            font-weight: 600;
+            text-align: center;
+            border-radius: 8px;
+            transition: background-color 0.2s, transform 0.1s;
+        }
     </style>
 </head>
-<body>
-    <h1>Live Ranking National Science Battles 2025</h1>
+<body class="flex flex-col items-center justify-center p-4 sm:p-8">
 
-    <h2>Интерфейс Жюри</h2>
-    <p>Для ввода баллов используйте: <a href="{{ url_for('jury_input') }}">Форма ввода баллов</a></p>
+    <div class="w-full max-w-xl bg-white rounded-xl p-8 shadow-2xl">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-primary-dark mb-2">
+                <i class="fas fa-satellite-dish mr-3"></i> Live Ranking NSB 2025
+            </h1>
+            <p class="text-lg text-gray-600">Система учета баллов в реальном времени</p>
+        </header>
 
-    <h2>Live Рейтинги для Зрителей</h2>
-    {% set tournaments = ['APhB', 'NChB', 'AMB'] %} 
-    {% set leagues = ['Senior', 'Junior'] %}
-    {% for tour_name in tournaments %}
-        <h3>{{ tour_name }}</h3>
-        <ul>
-            {% for level in leagues %}
-                <li>
-                    <a href="{{ url_for('show_ranking', tournament_id=tour_name, league_level=level) }}">
-                        Рейтинг: {{ level }} Лига
-                    </a>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endfor %}
+        <!-- Интерфейс Жюри -->
+        <div class="section-card bg-gray-50 p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-2xl font-bold text-text-dark mb-4 border-b pb-2 border-primary/20">
+                <i class="fas fa-user-shield mr-2 text-primary"></i> Интерфейс Жюри
+            </h2>
+            <p class="text-gray-700 mb-4">Для ввода и обновления баллов командам используйте форму жюри.</p>
+            <a href="{{ url_for('jury_input') }}" 
+               class="link-button w-full bg-primary text-white hover:bg-primary-light shadow-md hover:shadow-lg focus:ring-4 focus:ring-primary-light">
+                <i class="fas fa-edit mr-2"></i> Форма ввода баллов
+            </a>
+        </div>
+
+        <!-- Live Рейтинги для Зрителей -->
+        <div class="section-card bg-gray-50 p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-text-dark mb-4 border-b pb-2 border-primary/20">
+                <i class="fas fa-chart-bar mr-2 text-primary"></i> Live Рейтинги (Зрители)
+            </h2>
+
+            <div class="space-y-4">
+                {% set tournaments = {'APhB': 'АФБ (Физика)', 'NChB': 'НХБ (Химия)', 'AMB': 'АМБ (Математика)'} %} 
+                {% set leagues = {'Senior': 'Старшая Лига', 'Junior': 'Младшая Лига'} %}
+
+                {% for tour_id, tour_name in tournaments.items() %}
+                    <h3 class="text-xl font-semibold text-text-dark pt-2">{{ tour_name }} ({{ tour_id }})</h3>
+                    <div class="grid grid-cols-2 gap-3 pl-4">
+                        {% for level_id, level_name in leagues.items() %}
+                            <a href="{{ url_for('show_ranking', tournament_id=tour_id, league_level=level_id) }}"
+                               class="link-button bg-primary-light/10 text-primary hover:bg-primary-light hover:text-white border border-primary-light/30">
+                                {{ level_name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-6 border-t pt-4 text-center">
+                <a href="{{ url_for('all_rankings_dashboard') }}" 
+                   class="link-button w-full bg-primary-dark text-white hover:bg-primary/80 focus:ring-4 focus:ring-primary-dark/50">
+                    <i class="fas fa-list-ol mr-2"></i> Общий Дашборд Всех Рейтингов
+                </a>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

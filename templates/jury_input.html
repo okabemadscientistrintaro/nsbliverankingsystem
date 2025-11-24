@@ -4,29 +4,46 @@
     <title>Ввод баллов Жюри</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
-        .form-container { width: 400px; margin: 50px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #333; }
-        label { display: block; margin-top: 15px; font-weight: bold; }
-        select, input[type="number"] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; margin-top: 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .form-container { width: 400px; margin: 50px auto; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        h1 { text-align: center; color: #333; margin-bottom: 25px; }
+        label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
+        select, input[type="number"] { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
+        select:focus, input[type="number"]:focus { border-color: #007bff; outline: none; }
+        button { width: 100%; padding: 12px; margin-top: 30px; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; transition: background-color 0.3s; }
         button:hover { background-color: #218838; }
-        #message { margin-top: 20px; text-align: center; font-weight: bold; }
+        #message { margin-top: 20px; padding: 10px; text-align: center; font-weight: bold; border-radius: 4px; }
     </style>
 </head>
 <body>
 
     <div class="form-container">
-        <h1>Ввод баллов</h1>
+        <h1>Ввод баллов Жюри</h1>
         
         <form id="score-form">
-            <label for="team_id">Команда:</label>
-            <select id="team_id" name="team_id" required>
-                <option value="">-- Выберите команду --</option>
-                {% for team in teams %}
-                <option value="{{ team.id }}">{{ team.name }} ({{ team.tournament_id }} - {{ team.league_level }})</option>
-                {% endfor %}
+            
+            <!-- 1. Выбор Турнира -->
+            <label for="tournament_select">Турнир:</label>
+            <select id="tournament_select" required>
+                <option value="">-- Выберите турнир --</option>
+                <option value="APhB">APhB</option>
+                <option value="NChB">NChB</option>
+                <option value="AMB">AMB</option>
             </select>
 
+            <!-- 2. Выбор Лиги -->
+            <label for="league_select">Лига:</label>
+            <select id="league_select" required>
+                <option value="">-- Выберите лигу --</option>
+                <option value="Senior">Senior</option>
+                <option value="Junior">Junior</option>
+            </select>
+            
+            <!-- 3. Динамический выбор Команды -->
+            <label for="team_id">Команда:</label>
+            <select id="team_id" name="team_id" required>
+                <option value="">-- Сначала выберите турнир и лигу --</option>
+            </select>
+            
             <label for="tour_number">Номер тура (1-5):</label>
             <select id="tour_number" name="tour_number" required>
                 <option value="">-- Выберите тур --</option>
@@ -37,7 +54,7 @@
                 <option value="5">5</option>
             </select>
 
-            <label for="score">Балл:</label>
+            <label for="score">Балл (например, 8.5):</label>
             <input type="number" id="score" name="score" step="0.1" min="0" required>
 
             <button type="submit">Обновить и Транслировать</button>
@@ -47,23 +64,75 @@
     </div>
 
     <script>
-        document.getElementById('score-form').addEventListener('submit', function(e) {
+        const tournamentSelect = document.getElementById('tournament_select');
+        const leagueSelect = document.getElementById('league_select');
+        const teamSelect = document.getElementById('team_id');
+        const scoreForm = document.getElementById('score-form');
+        const messageDiv = document.getElementById('message');
+
+        /**
+         * Асинхронно получает список команд с сервера и обновляет teamSelect.
+         */
+        function updateTeamList() {
+            const tourId = tournamentSelect.value;
+            const leagueLevel = leagueSelect.value;
+
+            if (!tourId || !leagueLevel) {
+                teamSelect.innerHTML = '<option value="">-- Сначала выберите турнир и лигу --</option>';
+                return;
+            }
+
+            // Формируем URL для AJAX-запроса к Flask
+            // Мы используем здесь ручное создание URL, так как в шаблоне jury_input.html нет доступа к url_for
+            const url = `/get_teams/${tourId}/${leagueLevel}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(teams => {
+                    teamSelect.innerHTML = '<option value="">-- Выберите команду --</option>';
+                    if (teams.length === 0) {
+                         teamSelect.innerHTML = '<option value="">-- Команды не найдены --</option>';
+                    }
+                    
+                    teams.forEach(team => {
+                        const option = document.createElement('option');
+                        option.value = team.id;
+                        option.textContent = team.name;
+                        teamSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке команд:', error);
+                    messageDiv.textContent = 'Ошибка при загрузке команд.';
+                    messageDiv.style.color = 'red';
+                });
+        }
+
+        // Привязываем обработчики событий к обоим спискам (турнир и лига)
+        tournamentSelect.addEventListener('change', updateTeamList);
+        leagueSelect.addEventListener('change', updateTeamList);
+
+
+        // --- Логика отправки формы ---
+        scoreForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const form = e.target;
-            const messageDiv = document.getElementById('message');
-            
+            // Простая валидация перед отправкой
+            if (!teamSelect.value || !document.getElementById('tour_number').value || !document.getElementById('score').value) {
+                messageDiv.textContent = 'Заполните все поля!';
+                messageDiv.style.color = 'orange';
+                return;
+            }
+
             const formData = {
-                team_id: parseInt(form.team_id.value),
-                tour_number: parseInt(form.tour_number.value),
-                score: parseFloat(form.score.value)
+                team_id: parseInt(teamSelect.value), 
+                tour_number: parseInt(document.getElementById('tour_number').value),
+                score: parseFloat(document.getElementById('score').value)
             };
 
             fetch("{{ url_for('jury_input') }}", {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             })
             .then(response => response.json())

@@ -1,64 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} Live Ranking</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f4f9; }
-        h1 { color: #333; text-align: center; padding: 20px; background-color: white; margin: 0; border-bottom: 1px solid #ddd; }
-        .ranking-container { width: 90%; max-width: 1200px; margin: 40px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; font-size: 18px; }
-        th, td { padding: 12px 15px; border: 1px solid #ddd; text-align: center; transition: background-color 0.3s; }
-        th { background-color: #007bff; color: white; position: sticky; top: 0; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        tr:hover { background-color: #f1f1f1; }
-        .rank-column { font-weight: bold; width: 5%; background-color: #e6f7ff !important; }
-        .team-column { text-align: left; width: 25%; }
-        .total-column { font-weight: bold; background-color: #ffe0b2; color: #e65100; font-size: 20px; }
-        .update-info { text-align: center; margin-top: 20px; color: #888; }
-        .updated-row { 
-            transition: background-color 1.5s ease-out; 
-            animation: flash 0.5s ease-in-out; 
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#8045FF', // Основной цвет
+                        'primary-light': '#9B70FF', 
+                        'primary-dark': '#6A37D0', 
+                        'background-light': '#F8F8FF', // Светлый фон
+                        'text-dark': '#1F2937', // Темный текст
+                        'total-score': '#F97316', // Orange-600 для общих баллов
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
         }
+    </script>
+    <style>
+        /* Общие стили */
+        body {
+            background-color: theme('colors.background-light');
+            min-height: 100vh;
+        }
+        /* Gradient Header */
+        .header-bg {
+            background: linear-gradient(135deg, theme('colors.primary') 0%, theme('colors.primary-dark') 100%);
+        }
+        /* Анимация мигания для обновленных строк */
         @keyframes flash {
-            0% { background-color: #ffeb3b; }
-            50% { background-color: #fff9c4; }
-            100% { background-color: inherit; }
+            0% { background-color: #ffeb3b; } /* Yellow-400 */
+            50% { background-color: #fff9c4; } /* Yellow-100 */
+            100% { background-color: theme('colors.gray.50'); }
+        }
+        .updated-row { 
+            animation: flash 1.5s ease-out; 
+        }
+        /* Отмена цвета наведения, если строка — первое место */
+        .first-place-row:hover {
+            background-color: theme('colors.primary-light') !important;
+            color: white !important;
+        }
+        /* Стиль для шапки таблицы, чтобы сделать ее sticky (прилипающей) внутри scrollable контейнера */
+        .sticky-header th {
+            position: sticky;
+            top: 0;
+            z-index: 20; /* Увеличено, чтобы быть над контентом таблицы */
+            background-color: theme('colors.primary-dark'); /* Добавлено для видимости при прокрутке */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
-<body>
+<body class="p-4 sm:p-8">
 
-    <h1>🏆 {{ title }} Live Ranking</h1>
+    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
+        
+        <header class="header-bg p-6 text-white text-center rounded-t-xl relative">
+            <a href="{{ url_for('all_rankings_dashboard') }}" class="absolute left-6 top-6 text-white hover:text-gray-300 transition hidden sm:inline-block">
+                <i class="fas fa-arrow-left mr-2"></i> Назад к Дашборду
+            </a>
+            <h1 class="text-3xl sm:text-4xl font-extrabold mb-1">
+                <i class="fas fa-trophy mr-2"></i> {{ title }} Live Ranking
+            </h1>
+            <p class="text-lg opacity-90">Обновляется в реальном времени | National Science Battles 2025</p>
+        </header>
 
-    <div class="ranking-container">
-        <table id="ranking-table">
-            <thead>
-                <tr>
-                    <th class="rank-column">Место</th>
-                    <th class="team-column">НАЗВАНИЕ КОМАНДЫ</th>
-                    <th>1 тур</th>
-                    <th>2 тур</th>
-                    <th>3 тур</th>
-                    <th>4 тур</th>
-                    <th>5 тур</th>
-                    <th class="total-column">ОБЩИЕ БАЛЛЫ</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
-        <p class="update-info">Последнее обновление: <span id="last-update">Ожидание данных...</span></p>
+        <main class="p-4 sm:p-8">
+            <!-- ИЗМЕНЕНИЕ ЗДЕСЬ: Максимальная высота и вертикальная прокрутка для отображения ВСЕХ команд -->
+            <div class="overflow-x-auto max-h-[75vh] lg:max-h-[80vh] overflow-y-auto rounded-lg border border-gray-200">
+                <table class="w-full text-left table-auto border-collapse">
+                    <thead class="sticky-header">
+                        <tr class="text-white text-sm uppercase tracking-wider">
+                            <th class="p-3 w-1/12 rounded-tl-lg text-center">Место</th>
+                            <th class="p-3 w-4/12">НАЗВАНИЕ КОМАНДЫ</th>
+                            <th class="p-3 text-center">Тур 1</th>
+                            <th class="p-3 text-center">Тур 2</th>
+                            <th class="p-3 text-center">Тур 3</th>
+                            <th class="p-3 text-center">Тур 4</th>
+                            <th class="p-3 text-center">Тур 5</th>
+                            <th class="p-3 w-2/12 text-right rounded-tr-lg bg-total-score">СУММА</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ranking-body" class="text-text-dark divide-y divide-gray-200">
+                        <!-- Данные будут заполнены JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="text-center mt-6 text-gray-500 text-sm">
+                Последнее обновление: <span id="last-update" class="font-semibold text-text-dark">Ожидание данных...</span>
+            </p>
+
+            <div id="loading" class="text-center py-10 text-primary">
+                <i class="fas fa-spinner fa-spin text-3xl mr-2"></i> 
+                Устанавливается соединение...
+            </div>
+        </main>
     </div>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
         const tournamentId = '{{ tournament_id }}';
         const leagueLevel = '{{ league_level }}';
         
         const socket = io();
-        const tableBody = document.getElementById('ranking-table').querySelector('tbody');
+        const tableBody = document.getElementById('ranking-body');
         const updateTimeSpan = document.getElementById('last-update');
+        const loadingElement = document.getElementById('loading');
         let currentRanking = []; 
+
+        // Функция для анимации счета
         function animateValue(obj, start, end, duration) {
             let startTimestamp = null;
             const startValue = parseFloat(start) || 0; 
@@ -80,56 +140,88 @@
         }
 
         socket.on('connect', () => {
+            console.log('Подключено к SocketIO');
             socket.emit('connect_to_ranking', {
                 tournament_id: tournamentId,
                 league_level: leagueLevel
             });
         });
-
+        
+        // Обработчик получения обновления рейтинга
         socket.on('ranking_update', (newRankingData) => {
+            // Если массив пуст или содержит только одну команду, это проблема на сервере, 
+            // но мы отобразим то, что есть.
+            if (newRankingData.length === 0) {
+                loadingElement.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-xl"></i> Нет данных для отображения.';
+                loadingElement.classList.remove('hidden');
+                return;
+            }
             
+            loadingElement.classList.add('hidden'); // Скрыть загрузку после первого получения данных
+            
+            // Создаем карту старых баллов для анимации
             const oldRankingMap = currentRanking.reduce((map, team) => {
                 map[team.team_id] = team.total_score; 
                 return map;
             }, {});
             
+            // Обновляем текущий рейтинг
             currentRanking = newRankingData;
             
             tableBody.innerHTML = ''; 
 
-            newRankingData.forEach(team => {
+            newRankingData.forEach((team, index) => {
+                // *** Эта итерация проходит по ВСЕМ элементам в newRankingData ***
                 const row = tableBody.insertRow();
                 row.setAttribute('data-team-id', team.team_id);
 
                 const oldScore = oldRankingMap[team.team_id] || 0;
                 const scoreChanged = team.total_score !== oldScore;
                 
+                // Чередование фона строк (gray-50 для четных)
+                if (index % 2 !== 0) {
+                    row.classList.add('bg-gray-50');
+                } else {
+                    row.classList.add('bg-white');
+                }
+                
+                // Класс для наведения
+                row.classList.add('hover:bg-primary-light', 'hover:text-white', 'transition', 'duration-150');
+
+
+                if (team.rank === 1) {
+                    row.classList.add('bg-primary-light', 'text-white', 'font-extrabold', 'first-place-row');
+                }
+                
                 if (scoreChanged) {
                     row.classList.add('updated-row'); 
                     setTimeout(() => row.classList.remove('updated-row'), 1500); 
-
-                    if (team.rank !== oldRankingMap[team.team_id]) {
-                         row.style.borderLeft = '4px solid #007bff';
-                         setTimeout(() => row.style.borderLeft = '', 1500);
-                    }
                 }
                 
+                // 1. Место
                 const rankCell = row.insertCell();
                 rankCell.textContent = team.rank;
-                rankCell.classList.add('rank-column');
+                rankCell.classList.add('p-3', 'font-extrabold', 'text-lg', 'text-center', 'w-1/12');
                 
+                // 2. Название команды
                 const teamCell = row.insertCell();
                 teamCell.textContent = team.team_name;
-                teamCell.classList.add('team-column');
+                teamCell.classList.add('p-3', 'text-left', 'font-semibold', 'w-4/12');
                 
+                // 3-7. Баллы по турам
                 for (let i = 1; i <= 5; i++) {
-                    const score = team.tour_scores[i] || 0.0;
-                    row.insertCell().textContent = score.toFixed(1); 
+                    const score = team.tour_scores?.[i] || 0.0; // Использовать ?. для безопасного доступа
+                    row.insertCell().classList.add('p-3', 'text-center', 'font-mono'); 
+                    row.cells[i+1].textContent = score.toFixed(1);
                 }
                 
+                // 8. Общая сумма
                 const totalCell = row.insertCell();
-                totalCell.classList.add('total-column');
-                
+                totalCell.classList.add('p-3', 'text-right', 'font-bold', 'text-xl', 'w-2/12');
+                totalCell.style.backgroundColor = 'rgba(255, 237, 213, 0.6)'; /* Orange-100/60 */
+                totalCell.style.color = tailwind.config.theme.extend.colors['total-score']; // Динамический доступ к цвету total-score
+
+
                 if (scoreChanged) {
                     animateValue(totalCell, oldScore, team.total_score, 1000); 
                 } else {
@@ -139,6 +231,7 @@
             
             updateTimeSpan.textContent = new Date().toLocaleTimeString('ru-RU');
         });
+        
     </script>
 </body>
 </html>
