@@ -3,23 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Дашборд Рейтингов | ТОП-10</title>
-    <!-- Подключение Tailwind CSS -->
+    <title>Дашборд Всех Рейтингов | NSB Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Подключение Font Awesome для иконок -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Подключение Socket.IO клиента -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    
     <script>
-        // ИНТЕГРИРОВАННАЯ КОНФИГУРАЦИЯ TAILWIND
         tailwind.config = {
             theme: {
                 extend: {
+                    // Определение основных цветов
                     colors: {
-                        'primary': '#8045FF', // APhB Default
-                        'primary-light': '#9B70FF', 
-                        'primary-dark': '#6A37D0', 
+                        'primary': '#8045FF', // Основной цвет
+                        'primary-light': '#9B70FF', // Для эффектов наведения
+                        'primary-dark': '#6A37D0', // Для темного акцента
                         'background-light': '#F8F8FF', // Светлый фон
                         'text-dark': '#1F2937', // Темный текст
                     },
@@ -30,25 +26,19 @@
             }
         }
     </script>
-    
     <style>
-        /* Глобальные стили и стилизация */
         body {
             background-color: theme('colors.background-light');
             min-height: 100vh;
-            padding: 0;
-            margin: 0;
         }
-        
         .ranking-card {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative; /* Важно для FLIP */
         }
         .ranking-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(128, 69, 255, 0.3); 
+            box-shadow: 0 10px 20px rgba(128, 69, 255, 0.3);
         }
-
+        /* Анимация для заголовка */
         @keyframes fadeInDown {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -56,450 +46,67 @@
         .animated-header {
             animation: fadeInDown 0.6s ease-out;
         }
-
-        /* Пользовательские цвета турниров для JS */
-        .color-APhB { --main-color: #8045FF; --light-bg: #F5F3FF; } 
-        .color-NChB { --main-color: #259BC0; --light-bg: #F0F9FF; } 
-        .color-AMB  { --main-color: #415EDF; --light-bg: #EFF6FF; } 
-        
-        /* Применение переменных */
-        .card-header {
-            color: var(--main-color);
-            background-color: var(--light-bg);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        .card-border {
-            border-top-color: var(--main-color) !important; 
-        }
-        .full-ranking-button {
-            background-color: var(--main-color) !important; 
-        }
-
-        /* --- Стилизация, имитирующая таблицу с колонками --- */
-        .grid-header, .team-row {
-            display: grid;
-            /* Настройка колонок: Ранг (50px), Команда (авто), Сумма (80px), Туры (5 колонок по 50px) */
-            grid-template-columns: 50px 1fr 80px repeat(5, 50px); 
-            gap: 4px;
-            align-items: center;
-            text-align: center;
-        }
-        
-        .grid-header {
-            @apply px-1 py-2 text-left text-xs sm:text-sm font-medium uppercase tracking-wider text-gray-600 bg-gray-50;
-        }
-        
-        /* Стили для строки команды (КЛЮЧЕВОЙ ДЛЯ АНИМАЦИИ) */
-        .team-row {
-            @apply px-1 py-2 text-xs sm:text-sm text-gray-800;
-            /* Плавное перемещение: 0.6 секунды - идеально для заметности */
-            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.6s ease, background-color 0.3s; 
-            will-change: transform, opacity;
-            position: relative; /* Важно для transform */
-        }
-
-        .ranking-list {
-            @apply divide-y divide-gray-100;
-        }
-        
-        /* Класс, который временно отключает переход при инверсии (I) */
-        .inverted {
-            transition: none !important;
-        }
-        
-        /* Стиль для исчезающих/появляющихся элементов */
-        .team-row.fading-out {
-            opacity: 0 !important;
-        }
-        .team-row.new-in {
-            opacity: 0;
-        }
-
-
-        /* Стили ячеек */
-        .rank-cell {
-            @apply text-center font-bold text-sm sm:text-base;
-        }
-        .team-name-cell {
-            @apply text-left font-semibold truncate;
-        }
-        .score-cell {
-            @apply text-right font-bold font-mono;
-        }
-        .tour-score-cell {
-            @apply text-center text-gray-700 font-mono;
-        }
-
-        /* Выделение ТОП-3 */
-        .rank-highlight-top3 {
-             background-color: var(--main-color) !important; 
-             color: white !important;
-             font-weight: 700;
-             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-             border-radius: 4px;
-             @apply py-0.5 px-1.5;
-        }
     </style>
 </head>
-<body class="p-0 m-0">
-    <!-- Заголовок и навигация -->
-    <header class="pt-8 pb-4 px-4 sm:px-8 text-center bg-white shadow-sm border-b border-gray-200 mb-6 animated-header">
+<body class="p-4 sm:p-8">
+    <header class="text-center mb-10 animated-header">
         <h1 class="text-4xl sm:text-5xl font-extrabold text-primary-dark mb-2">
-            <i class="fas fa-microscope mr-3 text-primary"></i> NSB 2025 - Live Дашборд Рейтингов
+            <i class=" mr-3"></i> National Science Battles 2025 - Рейтинги Команд
         </h1>
-        <p class="text-lg text-gray-600">Сводка по всем турнирам и лигам в реальном времени (ТОП-10)</p>
-        
-        <nav class="mt-6 flex justify-center space-x-4">
-            <a href="/jury_input" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-md text-sm sm:text-base">
-                Ввод Баллов Жюри
-            </a>
-            <a href="/" class="text-indigo-600 border border-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition-colors text-sm sm:text-base">
-                Главная
-            </a>
-        </nav>
+        <p class="text-lg text-gray-600">Сводка по всем турнирам и лигам в реальном времени</p>
     </header>
 
-    <!-- Контейнер для всех 6 рейтингов: Используем lg:grid-cols-3 для 3 колонок на больших экранах -->
-    <div id="rankings-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 md:p-6 opacity-0">
-        
-        <!-- Сообщение о загрузке/ошибке -->
-        <div id="loading-status" class="col-span-full p-6 bg-white rounded-xl shadow-lg border border-indigo-300 text-center">
-            <div class="flex items-center justify-center space-x-3">
-                <svg class="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p class="text-lg text-indigo-700">Подключение к серверу и ожидание данных...</p>
-            </div>
-            <p id="error-message" class="text-red-500 mt-2 hidden">
-                Ошибка: Не удалось загрузить данные. Проверьте консоль и убедитесь, что ваш Flask-сервер запущен с SocketIO.
-            </p>
-        </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {% for key, item in data.items() %}
+            <div class="ranking-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-primary-light">
+                <h2 class="text-2xl font-bold mb-4 text-text-dark border-b pb-2 border-gray-100">
+                    {{ item.title }}
+                </h2>
+                
+                <ol class="space-y-3">
+                    {# FIX: Используем прямой синтаксис среза списка [::5] для большей надежности #}
+                    {% for team in item.data[:5] %} 
+                        <li class="flex justify-between items-center text-lg {% if team.rank == 1 %} font-extrabold text-primary-dark bg-primary-light/10 p-2 rounded-lg {% endif %}">
+                            <span class="w-1/12 text-center text-xl">{{ team.rank }}.</span>
+                            <span class="w-8/12 truncate text-text-dark">{{ team.team_name }}</span>
+                            {# Форматирование балла до одного знака после запятой #}
+                            <span class="w-3/12 text-right font-mono text-xl">{{ "%.1f" | format(team.total_score) }}</span>
+                        </li>
+                    {% endfor %}
+                </ol>
 
+                <div class="mt-5 text-center">
+                    {# Предполагаем, что url_for('show_ranking') требует tournament_id и league_level #}
+                    <a href="{{ url_for('show_ranking', tournament_id=item.tournament_id, league_level=item.league_level) }}" 
+                       class="inline-block px-4 py-2 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-primary-light transition duration-200 shadow-md">
+                        Показать Полный Рейтинг
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            {# Сообщение, если переменная 'data' пуста (нет рейтингов для отображения) #}
+            <div class="lg:col-span-2 xl:col-span-3 text-center py-12 bg-white rounded-xl shadow-lg border-t-4 border-red-400">
+                <p class="text-xl text-red-700 font-semibold mb-2">
+                    <i class="fas fa-bug mr-2"></i> Ошибка Загрузки Данных
+                </p>
+                <p class="text-lg text-gray-600">
+                    Не удалось загрузить ни одного рейтинга. Проверьте, что функция 
+                    <code class="bg-gray-100 p-1 rounded font-mono">all_rankings_dashboard</code> 
+                    в <code class="bg-gray-100 p-1 rounded font-mono">app.py</code> возвращает непустой словарь в переменную <code class="bg-gray-100 p-1 rounded font-mono">data</code>.
+                </p>
+            </div>
+        {% endfor %}
     </div>
-    
-    <footer class="text-center mt-12 text-gray-500 text-sm py-4">
-        <p>Система Рейтинга NSB Live | Работает на Flask-SocketIO</p>
+
+    <footer class="text-center mt-12 text-gray-500 text-sm">
+        <p>Система Рейтинга NSB Live | Работает на PostgreSQL и SocketIO</p>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
-        const socket = io();
-        const rankingsContainer = document.getElementById('rankings-container');
-        const loadingStatus = document.getElementById('loading-status');
-        const errorMessage = document.getElementById('error-message');
-        
-        // Заглушка, если Jinja не передал данные
-        const initialData = {}; 
-
-        // Список ключей, которые мы ожидаем получить от сервера.
-        const expectedKeys = [
-            'APhB_Senior', 'NChB_Senior', 'AMB_Senior',
-            'APhB_Junior', 'NChB_Junior', 'AMB_Junior'
-        ];
-
-        // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-
-        function formatScore(score) {
-            // Форматируем счет до двух знаков после запятой
-            return parseFloat(score).toFixed(2);
-        }
-        
-        function getTournamentKey(tournamentId) {
-            return tournamentId.toUpperCase();
-        }
-
-        /**
-         * Генерирует HTML-строку для внутреннего содержимого строки команды.
-         */
-        function createTeamRowInnerHtml(team, tourKey) {
-            const rankClass = team.rank <= 3 ? 'rank-highlight-top3' : 'text-gray-600';
-            
-            // Форматирование ячеек туров
-            let tourCells = '';
-            for (let i = 1; i <= 5; i++) {
-                const score = team.tour_scores ? (team.tour_scores[i] || 0.0) : 0.0;
-                // Добавляем класс, чтобы можно было найти ячейку по индексу
-                tourCells += `<div class="tour-score-cell tour-cell-${i}">${formatScore(score)}</div>`;
-            }
-
-            return `
-                <!-- 1. Ранг -->
-                <div class="rank-cell">
-                    <span class="${rankClass}" data-role="rank-span">${team.rank}</span>
-                </div>
-
-                <!-- 2. Имя Команды -->
-                <div class="team-name-cell">
-                    ${team.team_name}
-                </div>
-
-                <!-- 3. Общий Счет (Сумма) -->
-                <div class="score-cell" data-role="score-cell">
-                    ${formatScore(team.total_score)}
-                </div>
-                
-                <!-- 4. Туры Т1-Т5 -->
-                ${tourCells}
-            `;
-        }
-
-
-        // --- ФУНКЦИИ ДЛЯ РЕНДЕРИНГА (FLIP LOGIC) ---
-        
-        /**
-         * Создает или обновляет DOM-элементы для одной карточки рейтинга, 
-         * применяя FLIP анимацию для плавного перемещения строк.
-         */
-        function animateRankingUpdate(containerId, rankingData, tournamentId, leagueLevel) {
-            const tourKey = getTournamentKey(tournamentId);
-            let container = document.getElementById(containerId);
-            
-            // Берем только ТОП-10
-            const limitedData = rankingData.slice(0, 10); 
-            
-            // --- 0. Initial Render Setup ---
-            if (!container) {
-                // ... (Код создания карточки остается прежним, но listEl пока пуст)
-                const card = document.createElement('div');
-                card.id = containerId;
-                card.className = `ranking-card bg-white rounded-xl shadow-lg border-t-4 card-border color-${tourKey} flex flex-col overflow-hidden`;
-
-                const header = `<div class="p-4 card-header">
-                                    <h2 class="text-xl font-bold text-text-dark">${tournamentId} (${leagueLevel})</h2>
-                                </div>`;
-                
-                const headerRow = `<div class="grid-header">
-                                    <div class="rank-cell">#</div>
-                                    <div class="team-name-cell">Команда</div>
-                                    <div class="score-cell">Сумма</div>
-                                    <div class="tour-score-cell">Т1</div>
-                                    <div class="tour-score-cell">Т2</div>
-                                    <div class="tour-score-cell">Т3</div>
-                                    <div class="tour-score-cell">Т4</div>
-                                    <div class="tour-score-cell">Т5</div>
-                                </div>`;
-                
-                const listContainerHtml = `<div class="ranking-list flex-grow w-full overflow-x-auto" style="min-width: 550px;" data-list-id="${containerId}-list"></div>`;
-                const footer = `<div class="p-4 text-center border-t border-gray-100 mt-auto">
-                                    <a href="/ranking/${tournamentId}/${leagueLevel}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg text-white shadow-md hover:opacity-90 transition-opacity full-ranking-button">
-                                       Полный Рейтинг <i class="fas fa-arrow-right ml-2"></i>
-                                    </a>
-                                </div>`;
-
-                card.innerHTML = header + headerRow + `<div class="p-2 sm:p-4 w-full">${listContainerHtml}</div>` + footer;
-                return card; 
-            }
-            
-            // --- 1. FIRST (Запоминаем начальные позиции) ---
-            const listEl = container.querySelector('.ranking-list');
-            const teamPositions = new Map();
-            const existingRowsMap = new Map();
-
-            listEl.querySelectorAll('.team-row').forEach(row => {
-                const teamId = row.dataset.teamId;
-                teamPositions.set(teamId, row.getBoundingClientRect().top);
-                existingRowsMap.set(teamId, row);
-            });
-
-            // --- 2. LAST (Гранулярное обновление и перестановка DOM) ---
-            const teamsToKeep = new Set();
-
-            limitedData.forEach((newTeam, newIndex) => {
-                const newTeamId = newTeam.team_id;
-                teamsToKeep.add(newTeamId);
-                let row = existingRowsMap.get(newTeamId);
-                
-                // Элемент, перед которым нужно вставить/переместить текущую строку
-                const targetRow = listEl.children[newIndex];
-
-                if (row) {
-                    // --- Существующий элемент: Обновляем содержимое и перемещаем ---
-                    
-                    // 1. Обновляем содержимое (без замены row.innerHTML!)
-                    const rankSpan = row.querySelector('[data-role="rank-span"]');
-                    if(rankSpan) {
-                         rankSpan.textContent = newTeam.rank;
-                         const newRankClass = newTeam.rank <= 3 ? 'rank-highlight-top3' : 'text-gray-600';
-                         rankSpan.className = newRankClass; // Обновляем класс ранга
-                    }
-                   
-                    row.querySelector('.team-name-cell').textContent = newTeam.team_name;
-                    row.querySelector('[data-role="score-cell"]').textContent = formatScore(newTeam.total_score);
-
-                    // Обновляем баллы туров
-                    for (let i = 1; i <= 5; i++) {
-                        const score = newTeam.tour_scores ? (newTeam.tour_scores[i] || 0.0) : 0.0;
-                        const tourCell = row.querySelector(`.tour-cell-${i}`);
-                        if (tourCell) {
-                            tourCell.textContent = formatScore(score);
-                        }
-                    }
-
-                    // 2. Обновляем фон строки (для чередования)
-                    row.className = row.className.replace(/bg-(white|gray-50\/50)/, newIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/50');
-                    
-                    // 3. Перемещаем строку на новую позицию
-                    if (row !== targetRow) {
-                         listEl.insertBefore(row, targetRow);
-                    }
-                    
-                } else {
-                    // --- Новый элемент: Создаем и вставляем ---
-                    row = document.createElement('div');
-                    row.className = `team-row ${newIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-indigo-50/70 transition-colors duration-150 border-b border-gray-100 last:border-b-0 new-in`;
-                    row.dataset.teamId = newTeamId;
-                    row.innerHTML = createTeamRowInnerHtml(newTeam, tourKey);
-                    
-                    // Вставляем новый элемент на место
-                    listEl.insertBefore(row, targetRow);
-                    
-                    // В FLIP новый элемент не имеет "первой" позиции, поэтому оставляем его без инверсии.
-                    // Он плавно появится благодаря классу .new-in.
-                }
-            });
-
-            // --- Удаление выбывших элементов ---
-            existingRowsMap.forEach((row, teamId) => {
-                if (!teamsToKeep.has(teamId)) {
-                    // 1. Применяем класс для плавного исчезновения
-                    row.classList.add('fading-out');
-                    // 2. Удаляем из DOM после завершения анимации
-                    setTimeout(() => {
-                        if (row.parentNode === listEl) {
-                            listEl.removeChild(row);
-                        }
-                    }, 600); // 600ms соответствует длительности transition
-                }
-            });
-            
-            // --- 3. INVERT (Инвертируем) ---
-            listEl.querySelectorAll('.team-row').forEach(row => {
-                const teamId = row.dataset.teamId;
-
-                // Инвертируем только те элементы, которые были в предыдущем состоянии
-                if (teamPositions.has(teamId) && !row.classList.contains('new-in')) {
-                    const oldY = teamPositions.get(teamId);
-                    const newY = row.getBoundingClientRect().top;
-                    
-                    const deltaY = oldY - newY; 
-
-                    if (deltaY !== 0) {
-                        row.style.transform = `translateY(${deltaY}px)`;
-                        row.classList.add('inverted'); 
-                        row.offsetWidth; // Принудительный reflow
-                    }
-                }
-            });
-
-            // --- 4. PLAY (Воспроизводим анимацию) ---
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => { 
-                    listEl.querySelectorAll('.team-row').forEach(row => {
-                        // Сбрасываем инверсию и transform
-                        row.classList.remove('inverted');
-                        row.style.transform = ''; 
-                        
-                        // Запускаем появление новых элементов
-                        if (row.classList.contains('new-in')) {
-                            row.classList.remove('new-in');
-                        }
-                    });
-                });
-            });
-            
-            return container; 
-        }
-
-
-        // --- ФУНКЦИЯ ОБНОВЛЕНИЯ UI (Используется для начальной загрузки и SocketIO) ---
-        function updateUI(data) {
-            loadingStatus.style.display = 'none';
-            errorMessage.classList.add('hidden'); 
-            
-            let dataReceived = false;
-            let tempContainer = document.createElement('div');
-
-            // Итерируем по ожидаемым ключам, чтобы гарантировать правильный порядок 
-            expectedKeys.forEach(key => {
-                const item = data[key];
-                const containerId = `ranking-card-${key}`;
-
-                if (item && item.data && Array.isArray(item.data)) {
-                    dataReceived = true;
-                    
-                    let card = document.getElementById(containerId);
-
-                    if (!card) {
-                        // Создаем и добавляем во временный контейнер
-                        card = animateRankingUpdate(containerId, item.data, item.tournament_id, item.league_level);
-                        tempContainer.appendChild(card); 
-                    } else {
-                        // Обновляем существующую карточку (здесь запускается FLIP)
-                        animateRankingUpdate(containerId, item.data, item.tournament_id, item.league_level);
-                    }
-                }
-            });
-            
-            // Вставляем новые карточки (только на первом рендере)
-            if (tempContainer.children.length > 0) {
-                 // Очищаем существующее сообщение о загрузке/ошибке
-                rankingsContainer.innerHTML = '';
-                
-                // Переносим все дочерние элементы из tempContainer в rankingsContainer
-                expectedKeys.forEach(key => {
-                    const card = tempContainer.querySelector(`#ranking-card-${key}`);
-                    if (card) {
-                        rankingsContainer.appendChild(card);
-                    }
-                });
-            }
-            
-            if (dataReceived) {
-                // Плавное появление основного контейнера после первой загрузки
-                rankingsContainer.style.opacity = '1';
-                rankingsContainer.style.transition = 'opacity 0.5s ease';
-            } else {
-                loadingStatus.style.display = 'block';
-                errorMessage.textContent = 'Ошибка: Данные рейтинга пусты. Проверьте JSON-файлы команд и подключение к БД.';
-                errorMessage.classList.remove('hidden'); 
-            }
-        }
-
-
-        // --- ЛОГИКА SOCKET.IO И ИНИЦИАЛИЗАЦИЯ ---
-
-        socket.on('dashboard_update', function(data) {
-            // Socket.IO присылает данные, используем функцию обновления UI
-            console.log(`[${new Date().toLocaleTimeString()}] Socket.IO получил обновление. Запуск FLIP анимации.`);
-            updateUI(data); 
-        });
-
-        socket.on('connect_error', (err) => {
-            console.error('Ошибка соединения Socket.IO:', err);
-            loadingStatus.style.display = 'block';
-            errorMessage.classList.remove('hidden'); 
-            errorMessage.textContent = 'Ошибка подключения к серверу Socket.IO. Убедитесь, что Flask запущен с socketio.run(app) и нет ошибок в базе данных.';
-        });
-
-        socket.on('connect', () => {
-            console.log('Socket.IO успешно подключен.');
-        });
-        
-        // --- НАЧАЛЬНАЯ ЗАГРУЗКА ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Если Jinja передал данные, используем их
-            if (initialData && Object.keys(initialData).length > 0) {
-                console.log('Начальная загрузка данных из Jinja. Запуск первого рендера.');
-                updateUI(initialData);
-            } else {
-                // Если Jinja не передал данные, показываем статус загрузки и ждем SocketIO
-                loadingStatus.style.display = 'block';
-                // Скрываем контейнер, пока не придут первые данные
-                rankingsContainer.style.opacity = '0';
-            }
-        });
-
+        // Placeholder for socket connection logic, but dashboard view is primarily server-rendered (no real-time push needed here)
+        // Real-time updates happen on the individual ranking pages.
     </script>
-
 </body>
 </html>
