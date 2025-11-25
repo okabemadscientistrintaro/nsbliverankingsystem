@@ -13,11 +13,20 @@
                 extend: {
                     // Определение основных цветов
                     colors: {
-                        'primary': '#8045FF', // Основной цвет
+                        'primary': '#8045FF', // Основной цвет (APhB)
                         'primary-light': '#9B70FF', // Для эффектов наведения
                         'primary-dark': '#6A37D0', // Для темного акцента
                         'background-light': '#F8F8FF', // Светлый фон
                         'text-dark': '#1F2937', // Темный текст
+                        
+                        // --- ЦВЕТА КАРТОЧЕК ДЛЯ ТУРНИРОВ ---
+                        'APhB-color': '#8045FF', // Фиолетовый
+                        'NChB-color': '#259BC0', // Голубой
+                        'AMB-color': '#415EDF',  // Синий
+                        'GNB-color': '#FF9800',  // Оранжевый
+                        'WDB-color': '#4CAF50',  // Зеленый
+                        'EEB-color': '#F44336',  // Красный
+                        // ------------------------------------
                     },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
@@ -33,10 +42,12 @@
         }
         .ranking-card {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
         }
         .ranking-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(128, 69, 255, 0.3);
+            /* Усиленный эффект тени, связанный с primary-dark для привлечения внимания */
+            box-shadow: 0 10px 20px rgba(106, 55, 208, 0.25); 
         }
         /* Анимация для заголовка */
         @keyframes fadeInDown {
@@ -46,67 +57,125 @@
         .animated-header {
             animation: fadeInDown 0.6s ease-out;
         }
+
+        /* --- ДИНАМИЧЕСКИЕ ЦВЕТА КАРТОЧЕК --- */
+        
+        /* Цвета границ */
+        .border-APhB { border-top-color: theme('colors.APhB-color') !important; }
+        .border-NChB { border-top-color: theme('colors.NChB-color') !important; }
+        .border-AMB { border-top-color: theme('colors.AMB-color') !important; }
+        .border-GNB { border-top-color: theme('colors.GNB-color') !important; }
+        .border-WDB { border-top-color: theme('colors.WDB-color') !important; }
+        .border-EEB { border-top-color: theme('colors.EEB-color') !important; }
+
+        /* Цвета кнопок */
+        .link-APhB { background-color: theme('colors.APhB-color'); }
+        .link-NChB { background-color: theme('colors.NChB-color'); }
+        .link-AMB { background-color: theme('colors.AMB-color'); }
+        .link-GNB { background-color: theme('colors.GNB-color'); }
+        .link-WDB { background-color: theme('colors.WDB-color'); }
+        .link-EEB { background-color: theme('colors.EEB-color'); }
+
+        /* Цвета иконок (ИСПРАВЛЕНИЕ) */
+        .icon-color-APhB { color: theme('colors.APhB-color'); }
+        .icon-color-NChB { color: theme('colors.NChB-color'); }
+        .icon-color-AMB { color: theme('colors.AMB-color'); }
+        .icon-color-GNB { color: theme('colors.GNB-color'); }
+        .icon-color-WDB { color: theme('colors.WDB-color'); }
+        .icon-color-EEB { color: theme('colors.EEB-color'); }
+        /* ----------------------------------------------------------------------- */
+        
+        /* Стили для TOP-1 */
+        .highlight-top1 {
+            border-left: 4px solid theme('colors.primary'); /* Используем основной цвет для TOP-1 */
+        }
     </style>
 </head>
 <body class="p-4 sm:p-8">
     <header class="text-center mb-10 animated-header">
         <h1 class="text-4xl sm:text-5xl font-extrabold text-primary-dark mb-2">
-            <i class=" mr-3"></i> National Science Battles 2025 - Рейтинги Команд
+            <i class="fas fa-trophy mr-3 text-primary"></i> National Science Battles 2025 - Рейтинги Команд
         </h1>
         <p class="text-lg text-gray-600">Сводка по всем турнирам и лигам в реальном времени</p>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {% for key, item in data.items() %}
-            <div class="ranking-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-primary-light">
-                <h2 class="text-2xl font-bold mb-4 text-text-dark border-b pb-2 border-gray-100">
-                    {{ item.title }}
-                </h2>
-                
-                <ol class="space-y-3">
-                    {# FIX: Используем прямой синтаксис среза списка [::5] для большей надежности #}
-                    {% for team in item.data[:5] %} 
-                        <li class="flex justify-between items-center text-lg {% if team.rank == 1 %} font-extrabold text-primary-dark bg-primary-light/10 p-2 rounded-lg {% endif %}">
-                            <span class="w-1/12 text-center text-xl">{{ team.rank }}.</span>
-                            <span class="w-8/12 truncate text-text-dark">{{ team.team_name }}</span>
-                            {# Форматирование балла до одного знака после запятой #}
-                            <span class="w-3/12 text-right font-mono text-xl">{{ "%.1f" | format(team.total_score) }}</span>
-                        </li>
-                    {% endfor %}
-                </ol>
+    <!-- ОСНОВНОЙ КОНТЕЙНЕР ДЛЯ ГРУППИРОВКИ ПО ЛИГАМ -->
+    <div class="space-y-12">
+        {% if data %}
+            {% for league_name, tournaments in data.items() %}
+                <section class="mb-10">
+                    <h2 class="text-3xl font-extrabold text-text-dark mb-6 border-b-2 border-primary-light pb-2">
+                        Лига {{ league_name | capitalize }}
+                    </h2>
 
-                <div class="mt-5 text-center">
-                    {# Предполагаем, что url_for('show_ranking') требует tournament_id и league_level #}
-                    <a href="{{ url_for('show_ranking', tournament_id=item.tournament_id, league_level=item.league_level) }}" 
-                       class="inline-block px-4 py-2 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-primary-light transition duration-200 shadow-md">
-                        Показать Полный Рейтинг
-                        <i class="fas fa-arrow-right ml-2"></i>
-                    </a>
-                </div>
-            </div>
+                    <!-- КОНТЕЙНЕР ДЛЯ ТУРНИРОВ ВНУТРИ ОДНОЙ ЛИГИ -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {% for item in tournaments %}
+                            {# ШАГ 1: Создаем динамический класс для границы #}
+                            {% set border_class = 'border-' + item.tournament_id %}
+                            {# ШАГ 2: Создаем динамический класс для кнопки #}
+                            {% set button_class = 'link-' + item.tournament_id %}
+                            {# ШАГ 3: Создаем динамический класс для иконки (ИСПРАВЛЕНИЕ) #}
+                            {% set icon_color_class = 'icon-color-' + item.tournament_id %}
+                            
+                            <div class="ranking-card bg-white p-6 rounded-xl shadow-lg border-t-4 {{ border_class }}">
+                                
+                                <h3 class="text-2xl font-bold mb-4 text-text-dark border-b pb-2 border-gray-100">
+                                    {# Добавляем иконку для визуализации, используя новый класс #}
+                                    <i class="fas fa-medal mr-2 opacity-80 {{ icon_color_class }}"></i>
+                                    {{ item.title }}
+                                </h3>
+                                
+                                <ol class="space-y-3">
+                                    {% for team in item.data[:5] %} 
+                                        {# Выделяем ТОП-1 #}
+                                        <li class="flex justify-between items-center text-lg p-2 rounded-lg transition duration-200 
+                                            {% if team.rank == 1 %} highlight-top1 bg-primary-light/10 font-extrabold text-primary-dark 
+                                            {% else %} hover:bg-gray-50/50 {% endif %}">
+                                            
+                                            <span class="w-1/12 text-center text-xl">{{ team.rank }}.</span>
+                                            <span class="w-8/12 truncate text-text-dark">{{ team.team_name }}</span>
+                                            {# Форматирование балла до двух знаков после запятой #}
+                                            <span class="w-3/12 text-right font-mono text-xl">{{ "%.2f" | format(team.total_score) }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ol>
+
+                                <div class="mt-5 text-center">
+                                    <a href="{{ url_for('show_ranking', tournament_id=item.tournament_id, league_level=item.league_level) }}" 
+                                       class="inline-block px-4 py-2 text-sm font-semibold text-white {{ button_class }} rounded-lg hover:opacity-90 transition duration-200 shadow-md">
+                                        Показать Полный Рейтинг
+                                        <i class="fas fa-arrow-right ml-2"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endfor %}
         {% else %}
-            {# Сообщение, если переменная 'data' пуста (нет рейтингов для отображения) #}
-            <div class="lg:col-span-2 xl:col-span-3 text-center py-12 bg-white rounded-xl shadow-lg border-t-4 border-red-400">
+            {# Сообщение, если переменная 'data' пуста #}
+            <div class="text-center py-12 bg-white rounded-xl shadow-lg border-t-4 border-red-400">
                 <p class="text-xl text-red-700 font-semibold mb-2">
                     <i class="fas fa-bug mr-2"></i> Ошибка Загрузки Данных
                 </p>
                 <p class="text-lg text-gray-600">
                     Не удалось загрузить ни одного рейтинга. Проверьте, что функция 
                     <code class="bg-gray-100 p-1 rounded font-mono">all_rankings_dashboard</code> 
-                    в <code class="bg-gray-100 p-1 rounded font-mono">app.py</code> возвращает непустой словарь в переменную <code class="bg-gray-100 p-1 rounded font-mono">data</code>.
+                    в <code class="bg-gray-100 p-1 rounded font-mono">app.py</code> возвращает словарь, 
+                    сгруппированный по лигам.
                 </p>
             </div>
-        {% endfor %}
+        {% endif %}
     </div>
 
-    <footer class="text-center mt-12 text-gray-500 text-sm">
+    <footer class="text-center mt-12 text-gray-500 text-sm py-4">
         <p>Система Рейтинга NSB Live | Работает на PostgreSQL и SocketIO</p>
     </footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
-        // Placeholder for socket connection logic, but dashboard view is primarily server-rendered (no real-time push needed here)
-        // Real-time updates happen on the individual ranking pages.
+        // JS: Здесь не требуется логика Socket.IO
     </script>
 </body>
 </html>
