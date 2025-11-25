@@ -232,40 +232,22 @@ def show_ranking(tournament_id, league_level):
 
 @app.route('/all_rankings')
 def all_rankings_dashboard():
-    """
-    Собирает данные для всех 6 рейтингов, группирует их по лигам (Junior/Senior)
-    для корректного отображения на дашборде.
-    """
+    """Собирает данные для всех 6 рейтингов для дашборда и отображает HTML."""
     
-    # Структура для хранения данных: {'Senior': [...], 'Junior': [...]}
-    grouped_dashboard_data = {}
-    
-    # ALL_COMBINATIONS должен быть списком кортежей: [('APhB', 'Senior'), ('NChB', 'Senior'), ...]
-    for tour_id, league_level in ALL_COMBINATIONS:
-        # 1. Рассчитываем рейтинг
-        ranking = calculate_ranking(tour_id, league_level)
-        
-        # 2. Создаем элемент данных для карточки
-        item_data = {
-            'title': f'{tour_id} ({league_level})',
-            'data': ranking,  # Список команд с рейтингом
-            'tournament_id': tour_id,
-            'league_level': league_level
-        }
-        
-        # 3. Группируем по уровню лиги
-        if league_level not in grouped_dashboard_data:
-            grouped_dashboard_data[league_level] = []
+    # Расчет данных для начального рендера HTML
+    dashboard_data = {}
+    with app.app_context(): # Убедимся, что контекст активен для работы с БД
+        for tour_id, level in ALL_COMBINATIONS:
+            key = f'{tour_id}_{level}'
+            ranking = calculate_ranking(tour_id, level)
+            dashboard_data[key] = {
+                'title': f'{tour_id} ({level})',
+                'data': ranking,
+                'tournament_id': tour_id,
+                'league_level': level
+            }
             
-        grouped_dashboard_data[league_level].append(item_data)
-        
-    # Сортируем лиги, чтобы Senior всегда был первым (по желанию, для порядка)
-    # Это гарантирует, что порядок вывода будет 'Senior', затем 'Junior', если оба присутствуют.
-    sorted_data = {
-        key: grouped_dashboard_data[key] 
-        for key in sorted(grouped_dashboard_data.keys(), reverse=True)
-    }
-
+    # Передаем данные, чтобы Jinja2 мог их встроить в HTML
     return render_template('all_rankings_dashboard.html', 
                            data=sorted_data, # Передаем сгруппированные и отсортированные данные
                            tournaments=TOURNAMENTS,
