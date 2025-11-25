@@ -10,6 +10,7 @@ import os # Добавлен для работы с путями к файлам
 
 app = Flask(__name__)
 # ВАШЕ ПОДКЛЮЧЕНИЕ К БД:
+# ВАЖНО: замените на реальный URL вашей базы данных
 DATABASE_URL = 'postgresql+psycopg2://neondb_owner:npg_XTVb48QSFkPz@ep-dark-silence-adah8o3x-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -22,7 +23,8 @@ app.config['SQLALCHEMY_POOL_TIMEOUT'] = 10
 # ------------------------------------
 
 db = SQLAlchemy(app)
-socketio = SocketIO(app)
+# Используем gevent для лучшей производительности в асинхронной среде
+socketio = SocketIO(app, async_mode='gevent', cors_allowed_origins="*")
 
 # ------------------------------------------------------------------
 # ГЛОБАЛЬНЫЕ НАСТРОЙКИ
@@ -42,11 +44,17 @@ def load_teams_from_json(tournament_id, league_level):
     """
     key = f"{tournament_id.lower()}_{league_level.lower()}"
     # Используем os.path.join для совместимости путей
-    filename = os.path.join(os.path.dirname(__file__), f"{key}.json")
+    filename = f"{key}.json" # Предполагаем, что файлы JSON лежат рядом с app.py
     
     try:
+        # В реальном приложении это потребует адаптации в зависимости от того, как
+        # хранятся файлы (например, если они загружены как Markdown-файлы,
+        # потребуется парсинг этого Markdown-контента).
+        # Здесь предполагаем чтение чистого JSON.
         with open(filename, 'r', encoding='utf-8') as f:
-            teams = json.load(f)
+            # ПРИМЕЧАНИЕ: Если файлы были переданы в Markdown блоках, 
+            # здесь может потребоваться дополнительная обработка для извлечения JSON.
+            teams = json.load(f) 
             if isinstance(teams, list):
                 return teams
             else:
@@ -99,7 +107,7 @@ def ensure_tables_exist():
     print("Все 6 таблиц Score готовы.")
     
 # ------------------------------------------------------------------
-# 3. ЛОГИКА РАСЧЕТА РЕЙТИНГА И ВЕЩАНИЕ
+# 3. ЛОГИКА РАСЧЕТА РЕЙТИНГА И ВЕЩАНИЕ (ОБНОВЛЕНО)
 # ------------------------------------------------------------------
 
 def calculate_ranking(tournament_id, league_level):
@@ -120,8 +128,11 @@ def calculate_ranking(tournament_id, league_level):
         stmt = select(score_table.c.team_id, score_table.c.tour_number, score_table.c.score).where(
             score_table.c.team_id.in_(team_ids)
         )
+        # Используем db.session.execute, чтобы не привязывать результат к сессии, 
+        # которую мы хотим тут же закрыть
         result = db.session.execute(stmt).all()
-        # db.session.remove() # Не требуется, если мы не используем транзакцию здесь
+        # db.session.remove() # Закрываем сессию/возвращаем в пул
+    db.session.remove()
 
     # 3. Инициализируем карту для подсчета
     scores_map = {}
@@ -131,8 +142,12 @@ def calculate_ranking(tournament_id, league_level):
     # 4. Заполняем карту баллами из БД
     for t_id, t_num, score_val in result:
         if t_id in scores_map and 1 <= t_num <= 5:
-            scores_map[t_id]['tour_scores'][t_num] = score_val
-            scores_map[t_id]['total_score'] += score_val
+            # Убедимся, что записываем только максимальный балл для тура (если бы было несколько записей)
+            # В текущей структуре таблицы это не проблема, но для надежности:
+            if score_val > scores_map[t_id]['tour_scores'][t_num]:
+                scores_map[t_id]['total_score'] -= scores_map[t_id]['tour_scores'][t_num] # Вычитаем старый
+                scores_map[t_id]['tour_scores'][t_num] = score_val
+                scores_map[t_id]['total_score'] += score_val
 
     # 5. Формируем финальный список рейтинга
     ranking_list = []
@@ -141,9 +156,12 @@ def calculate_ranking(tournament_id, league_level):
         team_id = team_data['id']
         scores = scores_map.get(team_id, {'tour_scores': {i: 0.0 for i in range(1, 6)}, 'total_score': 0.0})
         
+        # Пересчитываем общую сумму, чтобы убедиться в ее точности
+        calculated_total = sum(scores['tour_scores'].values())
+
         ranking_list.append({
             'team_name': team_data['name'],
-            'total_score': scores['total_score'],
+            'total_score': round(calculated_total, 1), # Округляем до 1 знака
             'tour_scores': scores['tour_scores'],
             'team_id': team_id,
             'tournament_id': tournament_id,
@@ -153,9 +171,6 @@ def calculate_ranking(tournament_id, league_level):
     # 6. Сортировка и присвоение места
     ranking_list.sort(key=lambda x: x['total_score'], reverse=True)
     
-    # ПРИМЕЧАНИЕ: Если вам нужна вторичная сортировка (например, по алфавиту), 
-    # добавьте ее здесь: key=lambda x: (x['total_score'], x['team_name']), reverse=(True, False)
-    
     for i, team in enumerate(ranking_list):
         team['rank'] = i + 1
         
@@ -163,54 +178,70 @@ def calculate_ranking(tournament_id, league_level):
 
 
 def broadcast_full_dashboard():
-    """Собирает данные для всех 6 рейтингов и отправляет их всем клиентам (для фонового обновления)."""
+    """
+    Собирает данные для всех 6 рейтингов, отправляет их как полный дашборд 
+    И рассылает обновления в комнаты для отдельных рейтингов.
+    """
     with app.app_context():
         dashboard_data = {}
+        
+        # 1. Расчет всех рейтингов и сбор данных для дашборда
         for tour_id, level in ALL_COMBINATIONS:
+            ranking = calculate_ranking(tour_id, level)
             key = f'{tour_id}_{level}'
-            ranking = calculate_ranking(tour_id, level) 
+            
+            # Собираем данные для дашборда
             dashboard_data[key] = {
                 'title': f'{tour_id} ({level})',
                 'data': ranking,
                 'tournament_id': tour_id,
                 'league_level': level
             }
+            
+            # 2. Отправляем обновление в комнату для конкретного рейтинга (для single-page view)
+            room = f'ranking_{tour_id}_{level}'
+            socketio.emit('ranking_update', ranking, room=room)
         
-        # Отправляем ВСЕ данные дашборда по общему событию
+        # 3. Отправляем ВСЕ данные дашборда по общему событию
         socketio.emit('dashboard_update', dashboard_data)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Обновление дашборда отправлено.")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Обновление дашборда и {len(ALL_COMBINATIONS)} комнат отправлено.")
+        
         return dashboard_data
 
 def background_update_rankings():
-    """Фоновый поток, который отправляет обновления дашборда через Socket.IO."""
+    """Фоновый поток, который периодически вещает полные обновления."""
     while True:
         try:
+            # Вызываем функцию, которая теперь обновляет и дашборд, и отдельные комнаты
             broadcast_full_dashboard()
         except Exception as e:
+            # Важно: логгирование ошибок из фонового потока
             print(f"Ошибка в фоновом потоке при обновлении: {e}")
-            # Добавьте log.exception(e) для более детального лога
             
         time.sleep(10) # Пауза 10 секунд
-
+        
 # ------------------------------------------------------------------
 # 4. МАРШРУТЫ И SOCKETIO
 # ------------------------------------------------------------------
 
 @socketio.on('connect_to_ranking')
 def handle_connect_to_ranking(data):
-    """Обрабатывает подключение клиента к конкретному каналу рейтинга (не используется на дашборде)."""
+    """Обрабатывает подключение клиента к конкретному каналу рейтинга."""
     tournament_id = data.get('tournament_id')
     league_level = data.get('league_level')
     
-    if tournament_id in TOURNAMENTS and league_level in LEAGUES:
+    if (tournament_id, league_level) in ALL_COMBINATIONS:
         channel_name = f'ranking_{tournament_id}_{league_level}'
         join_room(channel_name)
         
-        print(f"Клиент присоединился к комнате: {channel_name}")
+        print(f"Клиент {request.sid} присоединился к комнате: {channel_name}")
         
         # Отправляем данные только этому клиенту при подключении
-        ranking_data = calculate_ranking(tournament_id, league_level)
-        emit('ranking_update', ranking_data, room=request.sid)
+        with app.app_context():
+            ranking_data = calculate_ranking(tournament_id, league_level)
+            emit('ranking_update', ranking_data, room=request.sid)
+    else:
+        print(f"Неизвестный турнир/лига: {tournament_id}/{league_level}")
 
 @app.route('/')
 def index():
@@ -234,24 +265,35 @@ def show_ranking(tournament_id, league_level):
 def all_rankings_dashboard():
     """Собирает данные для всех 6 рейтингов для дашборда и отображает HTML."""
     
-    # Расчет данных для начального рендера HTML
-    dashboard_data = {}
-    with app.app_context(): # Убедимся, что контекст активен для работы с БД
+    # 1. Сбор плоского списка данных
+    dashboard_data_flat = {}
+    with app.app_context():
         for tour_id, level in ALL_COMBINATIONS:
-            key = f'{tour_id}_{level}'
             ranking = calculate_ranking(tour_id, level)
-            dashboard_data[key] = {
+            key = f'{tour_id}_{level}'
+            dashboard_data_flat[key] = {
                 'title': f'{tour_id} ({level})',
                 'data': ranking,
                 'tournament_id': tour_id,
                 'league_level': level
             }
             
-    # Передаем данные, чтобы Jinja2 мог их встроить в HTML
+    # 2. Группировка данных по лигам (для Jinja2)
+    dashboard_data_grouped = {
+        'Senior': [], 
+        'Junior': []
+    }
+    for key, item in dashboard_data_flat.items():
+        league_level = item['league_level']
+        if league_level in dashboard_data_grouped:
+            dashboard_data_grouped[league_level].append(item)
+
+    # 3. Передаем сгруппированные данные в шаблон
     return render_template('all_rankings_dashboard.html', 
-                           data=sorted_data, # Передаем сгруппированные и отсортированные данные
+                           data=dashboard_data_grouped, # ПЕРЕДАЕМ СГРУППИРОВАННЫЙ ОБЪЕКТ
                            tournaments=TOURNAMENTS,
                            leagues=LEAGUES)
+
 
 @app.route('/get_teams/<string:tournament_id>/<string:league_level>')
 def get_teams(tournament_id, league_level):
@@ -289,52 +331,54 @@ def jury_input():
         tour_broadcast = None
         level_broadcast = None
         
-        for tour_id, level in ALL_COMBINATIONS:
-            teams = load_teams_from_json(tour_id, level)
-            for team in teams:
-                if team['id'] == team_id:
-                    found_team = team
-                    tour_broadcast = tour_id
-                    level_broadcast = level
+        with app.app_context(): # Необходимо для работы с load_teams_from_json
+            for tour_id, level in ALL_COMBINATIONS:
+                teams = load_teams_from_json(tour_id, level)
+                for team in teams:
+                    if team['id'] == team_id:
+                        found_team = team
+                        tour_broadcast = tour_id
+                        level_broadcast = level
+                        break
+                if found_team:
                     break
-            if found_team:
-                break
-                
+                    
         if not found_team:
             return jsonify({"success": False, "message": f"Команда с ID {team_id} не найдена в данных"}), 404
         
         score_table = get_score_table(tour_broadcast, level_broadcast)
         
         # 3. Обновление/Вставка
-        with db.session.begin(): # Используем контекстный менеджер для транзакции
-            check_stmt = select(score_table.c.id).where(
-                score_table.c.team_id == team_id,
-                score_table.c.tour_number == tour_number
-            )
-            # scalar_one_or_none - более безопасно, чем scalar()
-            existing_record_id = db.session.execute(check_stmt).scalar_one_or_none()
-            
-            if existing_record_id:
-                # Обновление (UPDATE)
-                update_stmt = update(score_table).where(score_table.c.id == existing_record_id).values(
-                    score=score_value,
-                    timestamp=datetime.utcnow()
+        # Используем контекст приложения, так как мы вызываем db.session.remove()
+        with app.app_context(): 
+            with db.session.begin(): # Используем контекстный менеджер для транзакции
+                check_stmt = select(score_table.c.id).where(
+                    score_table.c.team_id == team_id,
+                    score_table.c.tour_number == tour_number
                 )
-                db.session.execute(update_stmt)
-                message = f"Баллы для команды {found_team['name']} (Тур {tour_number}) обновлены!"
-            else:
-                # Вставка (INSERT)
-                insert_stmt = insert(score_table).values(
-                    team_id=team_id, 
-                    tour_number=tour_number, 
-                    score=score_value
-                )
-                db.session.execute(insert_stmt)
-                message = f"Баллы для команды {found_team['name']} (Тур {tour_number}) добавлены!"
-            
-        db.session.remove() # Возвращаем соединение в пул
+                existing_record_id = db.session.execute(check_stmt).scalar_one_or_none()
+                
+                if existing_record_id:
+                    # Обновление (UPDATE)
+                    update_stmt = update(score_table).where(score_table.c.id == existing_record_id).values(
+                        score=score_value,
+                        timestamp=datetime.utcnow()
+                    )
+                    db.session.execute(update_stmt)
+                    message = f"Баллы для команды {found_team['name']} (Тур {tour_number}) обновлены!"
+                else:
+                    # Вставка (INSERT)
+                    insert_stmt = insert(score_table).values(
+                        team_id=team_id, 
+                        tour_number=tour_number, 
+                        score=score_value
+                    )
+                    db.session.execute(insert_stmt)
+                    message = f"Баллы для команды {found_team['name']} (Тур {tour_number}) добавлены!"
+                
+            db.session.remove() # Возвращаем соединение в пул
 
-        # 4. Отправка обновления (вызываем вещание полного дашборда)
+        # 4. Отправка обновления (вызываем вещание полного дашборда, который обновит все)
         broadcast_full_dashboard()
         
         return jsonify({"success": True, "message": message})
@@ -359,4 +403,5 @@ if __name__ == '__main__':
     update_thread.start()
     print("Сервер запущен. Фоновое SocketIO вещание начато.")
     
+    # ВАЖНО: При использовании gevent/async_mode='gevent' используйте socketio.run
     socketio.run(app, debug=True)

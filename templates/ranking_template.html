@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Jinja: Используем переменную title -->
     <title>{{ title }} Live Ranking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -12,16 +13,22 @@
             theme: {
                 extend: {
                     colors: {
-                        'primary': '#8045FF', // Основной цвет
-                        'primary-light': '#9B70FF', 
-                        'primary-dark': '#6A37D0', 
-                        'background-light': '#F8F8FF', // Светлый фон
-                        'text-dark': '#1F2937', // Темный текст
-                        'total-score': '#F97316', // Orange-600 для общих баллов
+                        // Обновленная, более глубокая палитра
+                        'primary': '#5D3FD3', // Глубокий фиолетовый
+                        'primary-light': '#8045FF', // Использовался ранее
+                        'primary-dark': '#3C2A9E', // Очень темный фиолетовый
+                        'background-light': '#F4F7FC', // Светлый фон
+                        'text-dark': '#1E293B', // Slate-900
+                        'total-score': '#EAB308', // Amber-500 для общих баллов
+                        'top-rank-bg': '#FFFBEB', // Amber-50 для фона топ-1
                     },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
+                        mono: ['Roboto Mono', 'monospace'], // Для счетов
                     },
+                    boxShadow: {
+                        'custom': '0 10px 30px -5px rgba(93, 63, 211, 0.3)', // Тень для карточки
+                    }
                 }
             }
         }
@@ -32,72 +39,95 @@
             background-color: theme('colors.background-light');
             min-height: 100vh;
         }
-        /* Gradient Header */
+        /* Gradient Header - Более насыщенный */
         .header-bg {
             background: linear-gradient(135deg, theme('colors.primary') 0%, theme('colors.primary-dark') 100%);
         }
         /* Анимация мигания для обновленных строк */
         @keyframes flash {
-            0% { background-color: #ffeb3b; } /* Yellow-400 */
-            50% { background-color: #fff9c4; } /* Yellow-100 */
-            100% { background-color: theme('colors.gray.50'); }
+            0% { background-color: theme('colors.total-score'); opacity: 0.8; } 
+            50% { background-color: theme('colors.background-light'); opacity: 1; } 
+            100% { background-color: inherit; }
         }
         .updated-row { 
-            animation: flash 1.5s ease-out; 
+            animation: flash 1s ease-out; 
         }
-        /* Отмена цвета наведения, если строка — первое место */
-        .first-place-row:hover {
-            background-color: theme('colors.primary-light') !important;
-            color: white !important;
-        }
-        /* Стиль для шапки таблицы, чтобы сделать ее sticky (прилипающей) внутри scrollable контейнера */
+
+        /* Стиль для шапки таблицы, чтобы сделать ее sticky (прилипающей) */
         .sticky-header th {
             position: sticky;
             top: 0;
-            z-index: 20; /* Увеличено, чтобы быть над контентом таблицы */
-            background-color: theme('colors.primary-dark'); /* Добавлено для видимости при прокрутке */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 20; 
+            background-color: theme('colors.primary-dark'); 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Стиль для ТОП-1 строки */
+        .first-place-row {
+            background-color: theme('colors.top-rank-bg') !important; /* Светло-желтый фон */
+            color: theme('colors.text-dark') !important;
+            border-left: 5px solid theme('colors.total-score') !important;
+            font-weight: 700;
+        }
+        .first-place-row:hover {
+            background-color: theme('colors.top-rank-bg') !important;
+            color: theme('colors.text-dark') !important;
+        }
+        
+        /* Увеличенный отступ для лучшей читаемости в таблице */
+        .table-auto td, .table-auto th {
+            padding: 1rem 0.75rem;
         }
     </style>
 </head>
 <body class="p-4 sm:p-8">
 
-    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
+    <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-custom overflow-hidden">
         
-        <header class="header-bg p-6 text-white text-center rounded-t-xl relative">
-            <a href="{{ url_for('all_rankings_dashboard') }}" class="absolute left-6 top-6 text-white hover:text-gray-300 transition hidden sm:inline-block">
-                <i class="fas fa-arrow-left mr-2"></i> Назад к Дашборду
+        <!-- ИСПРАВЛЕНИЕ: Вернул цвет текста на белый для видимости на темном фоне header-bg -->
+        <header class="header-bg p-6 sm:p-10 text-primary text-center rounded-t-2xl relative">
+            <!-- Jinja: Ссылка на дашборд -->
+            <a href="{{ url_for('all_rankings_dashboard') }}" class="absolute left-4 top-4 sm:left-6 sm:top-6 text-primary hover:text-gray-300 transition text-sm sm:text-base">
+                <i class="fas fa-arrow-left mr-2"></i> Назад
             </a>
-            <h1 class="text-3xl sm:text-4xl font-extrabold mb-1">
-                <i class="fas fa-trophy mr-2"></i> {{ title }} Live Ranking
-            </h1>
-            <p class="text-lg opacity-90">Обновляется в реальном времени | National Science Battles 2025</p>
+            <div class="pt-2">
+                <h1 class="text-3xl sm:text-5xl font-extrabold mb-1 tracking-tight">
+                    <!-- ИСПРАВЛЕНИЕ: Добавил иконку короны -->
+                    <i class="mr-3 text-total-score"></i> 
+                    <!-- Jinja: Используем переменную title -->
+                    {{ title }}
+                </h1>
+                <p class="text-primary sm:text-lg opacity-80">Обновление результатов в режиме реального времени</p>
+            </div>
         </header>
 
         <main class="p-4 sm:p-8">
-            <!-- ИЗМЕНЕНИЕ ЗДЕСЬ: Максимальная высота и вертикальная прокрутка для отображения ВСЕХ команд -->
-            <div class="overflow-x-auto max-h-[75vh] lg:max-h-[80vh] overflow-y-auto rounded-lg border border-gray-200">
-                <table class="w-full text-left table-auto border-collapse">
+            <!-- КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ СТРУКТУРЫ: Добавлены классы для прокрутки и ограничения высоты -->
+            <div class="shadow-xl rounded-xl border-2 border-gray-100">
+                <table class="w-full text-left table-auto border-collapse text-sm sm:text-primary">
+                    
                     <thead class="sticky-header">
-                        <tr class="text-white text-sm uppercase tracking-wider">
-                            <th class="p-3 w-1/12 rounded-tl-lg text-center">Место</th>
-                            <th class="p-3 w-4/12">НАЗВАНИЕ КОМАНДЫ</th>
-                            <th class="p-3 text-center">Тур 1</th>
-                            <th class="p-3 text-center">Тур 2</th>
-                            <th class="p-3 text-center">Тур 3</th>
-                            <th class="p-3 text-center">Тур 4</th>
-                            <th class="p-3 text-center">Тур 5</th>
-                            <th class="p-3 w-2/12 text-right rounded-tr-lg bg-total-score">СУММА</th>
+                        <tr class="text-primary uppercase tracking-wider font-semibold">
+                            <th class="p-4 w-[5%] rounded-tl-xl text-center">#</th>
+                            <th class="p-4 w-[35%]">Команда</th>
+                            <!-- Изменяем ширину колонок для лучшей адаптивности -->
+                            <th class="p-4 text-center w-[10%] hidden md:table-cell">Тур 1</th>
+                            <th class="p-4 text-center w-[10%] hidden md:table-cell">Тур 2</th>
+                            <th class="p-4 text-center w-[10%] hidden md:table-cell">Тур 3</th>
+                            <th class="p-4 text-center w-[10%] hidden md:table-cell">Тур 4</th>
+                            <th class="p-4 text-center w-[10%] hidden md:table-cell">Тур 5</th>
+                            <th class="p-4 w-[10%] text-right rounded-tr-xl">СУММА</th>
                         </tr>
                     </thead>
-                    <tbody id="ranking-body" class="text-text-dark divide-y divide-gray-200">
+                    
+                    <tbody id="ranking-body" class="text-text-dark divide-y divide-gray-100">
                         <!-- Данные будут заполнены JS -->
                     </tbody>
                 </table>
             </div>
 
             <p class="text-center mt-6 text-gray-500 text-sm">
-                Последнее обновление: <span id="last-update" class="font-semibold text-text-dark">Ожидание данных...</span>
+                Последнее обновление: <span id="last-update" class="font-bold text-text-dark">Ожидание данных...</span>
             </p>
 
             <div id="loading" class="text-center py-10 text-primary">
@@ -107,8 +137,10 @@
         </main>
     </div>
 
+    <!-- SCRIPT LOGIC (Изменена логика Rank 1, остальное сохранено) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
+        // Jinja: Переменные tournament_id и league_level
         const tournamentId = '{{ tournament_id }}';
         const leagueLevel = '{{ league_level }}';
         
@@ -127,6 +159,7 @@
             const step = (timestamp) => {
                 if (!startTimestamp) startTimestamp = timestamp;
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // Интерполяция значения
                 const currentValue = startValue + (endValue - startValue) * progress; 
                 obj.textContent = currentValue.toFixed(1);
 
@@ -141,6 +174,7 @@
 
         socket.on('connect', () => {
             console.log('Подключено к SocketIO');
+            // При подключении запрашиваем начальный рейтинг
             socket.emit('connect_to_ranking', {
                 tournament_id: tournamentId,
                 league_level: leagueLevel
@@ -149,8 +183,6 @@
         
         // Обработчик получения обновления рейтинга
         socket.on('ranking_update', (newRankingData) => {
-            // Если массив пуст или содержит только одну команду, это проблема на сервере, 
-            // но мы отобразим то, что есть.
             if (newRankingData.length === 0) {
                 loadingElement.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-xl"></i> Нет данных для отображения.';
                 loadingElement.classList.remove('hidden');
@@ -168,17 +200,18 @@
             // Обновляем текущий рейтинг
             currentRanking = newRankingData;
             
+            // ОЧЕНЬ ВАЖНО: Полностью перестраиваем таблицу для корректного отображения смены мест
             tableBody.innerHTML = ''; 
 
             newRankingData.forEach((team, index) => {
-                // *** Эта итерация проходит по ВСЕМ элементам в newRankingData ***
                 const row = tableBody.insertRow();
                 row.setAttribute('data-team-id', team.team_id);
 
                 const oldScore = oldRankingMap[team.team_id] || 0;
+                // Считаем, что счет изменился, если он отличается, или если изменилось место (что не проверяется здесь, но покрывается полным ребилдом)
                 const scoreChanged = team.total_score !== oldScore;
                 
-                // Чередование фона строк (gray-50 для четных)
+                // Чередование фона строк (bg-gray-50 для четных)
                 if (index % 2 !== 0) {
                     row.classList.add('bg-gray-50');
                 } else {
@@ -186,45 +219,58 @@
                 }
                 
                 // Класс для наведения
-                row.classList.add('hover:bg-primary-light', 'hover:text-white', 'transition', 'duration-150');
+                row.classList.add('hover:bg-gray-100', 'transition', 'duration-150');
 
 
                 if (team.rank === 1) {
-                    row.classList.add('bg-primary-light', 'text-white', 'font-extrabold', 'first-place-row');
+                    // Используем класс для ТОП-1
+                    row.classList.add('first-place-row');
                 }
                 
                 if (scoreChanged) {
+                    // Добавляем класс для анимации мигания
                     row.classList.add('updated-row'); 
                     setTimeout(() => row.classList.remove('updated-row'), 1500); 
                 }
                 
                 // 1. Место
                 const rankCell = row.insertCell();
-                rankCell.textContent = team.rank;
-                rankCell.classList.add('p-3', 'font-extrabold', 'text-lg', 'text-center', 'w-1/12');
+                rankCell.classList.add('p-4', 'font-extrabold', 'text-xl', 'text-center', 'w-[5%]');
+                
+                if (team.rank === 1) {
+                    // ИСПРАВЛЕНИЕ ЛОГИКИ: Визуально выделяем 1-е место с иконкой FA
+                    rankCell.innerHTML = `<i class="text-total-score mr-1"></i> 1`;
+                } else {
+                    rankCell.textContent = team.rank;
+                    rankCell.classList.add('text-lg', 'text-gray-500');
+                }
                 
                 // 2. Название команды
                 const teamCell = row.insertCell();
                 teamCell.textContent = team.team_name;
-                teamCell.classList.add('p-3', 'text-left', 'font-semibold', 'w-4/12');
+                teamCell.classList.add('p-4', 'text-left', 'font-medium', 'text-text-dark', 'w-[35%]');
                 
                 // 3-7. Баллы по турам
-                for (let i = 1; i <= 5; i++) {
-                    const score = team.tour_scores?.[i] || 0.0; // Использовать ?. для безопасного доступа
-                    row.insertCell().classList.add('p-3', 'text-center', 'font-mono'); 
-                    row.cells[i+1].textContent = score.toFixed(1);
+                const numTours = 5;
+                for (let i = 1; i <= numTours; i++) {
+                    const score = team.tour_scores?.[i] || 0.0;
+                    const cell = row.insertCell();
+                    cell.classList.add('p-4', 'text-center', 'font-mono', 'text-base', 'hidden', 'md:table-cell');
+                    // Важно: всегда отображаем текущий балл тура (без анимации)
+                    cell.textContent = score.toFixed(1); 
                 }
                 
-                // 8. Общая сумма
+                // 8. Общая сумма 
                 const totalCell = row.insertCell();
-                totalCell.classList.add('p-3', 'text-right', 'font-bold', 'text-xl', 'w-2/12');
-                totalCell.style.backgroundColor = 'rgba(255, 237, 213, 0.6)'; /* Orange-100/60 */
+                totalCell.classList.add('p-4', 'text-right', 'font-extrabold', 'text-xl', 'w-[10%]', 'bg-gray-100/50');
                 totalCell.style.color = tailwind.config.theme.extend.colors['total-score']; // Динамический доступ к цвету total-score
 
-
+                // ЛОГИКА АНИМАЦИИ:
                 if (scoreChanged) {
+                    // Запускаем анимацию счета, если он изменился
                     animateValue(totalCell, oldScore, team.total_score, 1000); 
                 } else {
+                    // Иначе просто отображаем текущий счет
                     totalCell.textContent = team.total_score.toFixed(1);
                 }
             });

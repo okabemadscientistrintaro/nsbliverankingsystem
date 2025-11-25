@@ -1,29 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ввод баллов Жюри</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    // Определение основных цветов (как в дашборде)
+                    colors: {
+                        'primary': '#8045FF', // Основной цвет (Фиолетовый)
+                        'primary-light': '#9B70FF', 
+                        'primary-dark': '#6A37D0', 
+                        'background-light': '#F8F8FF', // Светлый фон
+                        'text-dark': '#1F2937', // Темный текст
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
-        .form-container { width: 400px; margin: 50px auto; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        h1 { text-align: center; color: #333; margin-bottom: 25px; }
-        label { display: block; margin-top: 15px; font-weight: bold; color: #555; }
-        select, input[type="number"] { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
-        select:focus, input[type="number"]:focus { border-color: #007bff; outline: none; }
-        button { width: 100%; padding: 12px; margin-top: 30px; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; transition: background-color 0.3s; }
-        button:hover { background-color: #218838; }
-        #message { margin-top: 20px; padding: 10px; text-align: center; font-weight: bold; border-radius: 4px; }
+        /* Общие стили и фон */
+        body {
+            background-color: theme('colors.background-light');
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Фокусное состояние для Select и Input */
+        select:focus, input[type="number"]:focus {
+            border-color: theme('colors.primary-light') !important;
+            box-shadow: 0 0 0 3px rgba(128, 69, 255, 0.3) !important;
+            outline: none;
+        }
     </style>
 </head>
 <body>
 
-    <div class="form-container">
-        <h1>Ввод баллов Жюри</h1>
+    <!-- ЗАМЕНА .form-container НА TAILWIND КЛАССЫ -->
+    <div class="w-full max-w-lg mx-auto p-6 sm:p-8 bg-white rounded-xl shadow-2xl border-t-4 border-primary-dark">
+        <h1 class="text-3xl font-extrabold text-primary-dark text-center mb-6">
+            <i class="fas fa-edit mr-2 text-primary"></i> Ввод баллов Жюри
+        </h1>
         
-        <form id="score-form">
+        <form id="score-form" class="space-y-4">
             
             <!-- 1. Выбор Турнира -->
-            <label for="tournament_select">Турнир:</label>
-            <select id="tournament_select" required>
+            <label for="tournament_select" class="block font-semibold text-text-dark pt-3">Турнир:</label>
+            <select id="tournament_select" required 
+                    class="w-full p-3 border border-gray-300 rounded-lg box-border text-base transition duration-200">
                 <option value="">-- Выберите турнир --</option>
                 <option value="APhB">APhB</option>
                 <option value="NChB">NChB</option>
@@ -31,21 +65,25 @@
             </select>
 
             <!-- 2. Выбор Лиги -->
-            <label for="league_select">Лига:</label>
-            <select id="league_select" required>
+            <label for="league_select" class="block font-semibold text-text-dark pt-3">Лига:</label>
+            <select id="league_select" required
+                    class="w-full p-3 border border-gray-300 rounded-lg box-border text-base transition duration-200">
                 <option value="">-- Выберите лигу --</option>
                 <option value="Senior">Senior</option>
                 <option value="Junior">Junior</option>
             </select>
             
             <!-- 3. Динамический выбор Команды -->
-            <label for="team_id">Команда:</label>
-            <select id="team_id" name="team_id" required>
+            <label for="team_id" class="block font-semibold text-text-dark pt-3">Команда:</label>
+            <select id="team_id" name="team_id" required
+                    class="w-full p-3 border border-gray-300 rounded-lg box-border text-base transition duration-200">
                 <option value="">-- Сначала выберите турнир и лигу --</option>
             </select>
             
-            <label for="tour_number">Номер тура (1-5):</label>
-            <select id="tour_number" name="tour_number" required>
+            <!-- 4. Номер тура -->
+            <label for="tour_number" class="block font-semibold text-text-dark pt-3">Номер тура (1-5):</label>
+            <select id="tour_number" name="tour_number" required
+                    class="w-full p-3 border border-gray-300 rounded-lg box-border text-base transition duration-200">
                 <option value="">-- Выберите тур --</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
@@ -54,13 +92,20 @@
                 <option value="5">5</option>
             </select>
 
-            <label for="score">Балл (например, 8.5):</label>
-            <input type="number" id="score" name="score" step="0.1" min="0" required>
+            <!-- 5. Балл -->
+            <label for="score" class="block font-semibold text-text-dark pt-3">Балл (например, 8.5):</label>
+            <input type="number" id="score" name="score" step="0.1" min="0" required
+                   class="w-full p-3 border border-gray-300 rounded-lg box-border text-base transition duration-200">
 
-            <button type="submit">Обновить и Транслировать</button>
+            <!-- Кнопка с фирменным цветом -->
+            <button type="submit" 
+                    class="w-full p-3 mt-6 bg-primary text-white font-bold rounded-lg cursor-pointer text-lg shadow-md hover:bg-primary-dark transition duration-300 transform hover:scale-[1.01]">
+                Обновить и Транслировать
+            </button>
         </form>
 
-        <div id="message"></div>
+        <!-- Блок сообщений -->
+        <div id="message" class="mt-4 p-3 font-semibold text-center rounded-lg"></div>
     </div>
 
     <script>
@@ -82,8 +127,7 @@
                 return;
             }
 
-            // Формируем URL для AJAX-запроса к Flask
-            // Мы используем здесь ручное создание URL, так как в шаблоне jury_input.html нет доступа к url_for
+            // Формируем URL для AJAX-запроса к Flask (сохранено как в оригинале)
             const url = `/get_teams/${tourId}/${leagueLevel}`;
 
             fetch(url)
@@ -103,9 +147,21 @@
                 })
                 .catch(error => {
                     console.error('Ошибка при загрузке команд:', error);
-                    messageDiv.textContent = 'Ошибка при загрузке команд.';
-                    messageDiv.style.color = 'red';
+                    showMessage('Ошибка при загрузке команд.', 'red');
                 });
+        }
+        
+        /**
+         * Управление отображением сообщений (для более чистого кода).
+         */
+        function showMessage(text, color) {
+            messageDiv.textContent = text;
+            // Динамические классы для фона и текста
+            messageDiv.className = `mt-4 p-3 font-semibold text-center rounded-lg bg-${color}-100 text-${color}-800`;
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = 'mt-4 p-3 font-semibold text-center rounded-lg';
+            }, 3000);
         }
 
         // Привязываем обработчики событий к обоим спискам (турнир и лига)
@@ -119,17 +175,18 @@
             
             // Простая валидация перед отправкой
             if (!teamSelect.value || !document.getElementById('tour_number').value || !document.getElementById('score').value) {
-                messageDiv.textContent = 'Заполните все поля!';
-                messageDiv.style.color = 'orange';
+                showMessage('Заполните все поля!', 'orange');
                 return;
             }
 
             const formData = {
+                // ПРИМЕЧАНИЕ: сохраняем парсинг team_id в int, как было в оригинале, предполагая, что ID на бэкенде - число
                 team_id: parseInt(teamSelect.value), 
                 tour_number: parseInt(document.getElementById('tour_number').value),
                 score: parseFloat(document.getElementById('score').value)
             };
 
+            // URL_FOR СТРОКА ОСТАВЛЕНА НЕТРОНУТОЙ ДЛЯ ФУНКЦИОНАЛЬНОЙ СОВМЕСТИМОСТИ
             fetch("{{ url_for('jury_input') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -138,18 +195,14 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    messageDiv.textContent = data.message;
-                    messageDiv.style.color = 'green';
+                    showMessage(data.message, 'green');
                 } else {
-                    messageDiv.textContent = 'Ошибка: ' + data.message;
-                    messageDiv.style.color = 'red';
+                    showMessage('Ошибка: ' + data.message, 'red');
                 }
-                setTimeout(() => messageDiv.textContent = '', 3000);  
             })
             .catch(error => {
                 console.error('Ошибка сети:', error);
-                messageDiv.textContent = 'Ошибка сети. Проверьте консоль.';
-                messageDiv.style.color = 'red';
+                showMessage('Ошибка сети. Проверьте консоль.', 'red');
             });
         });
     </script>

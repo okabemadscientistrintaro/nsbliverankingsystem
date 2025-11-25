@@ -3,29 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Дашборд Рейтингов | ТОП-10</title>
-    <!-- Подключение Tailwind CSS -->
+    <title>Дашборд Всех Рейтингов | NSB Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Подключение Font Awesome для иконок -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Подключение Socket.IO клиента -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    
     <script>
-        // ИНТЕГРИРОВАННАЯ КОНФИГУРАЦИЯ TAILWIND
         tailwind.config = {
             theme: {
                 extend: {
+                    // Определение основных цветов
                     colors: {
-<<<<<<< HEAD
                         'primary': '#8045FF', // Основной цвет (APhB)
                         'primary-light': '#9B70FF', // Для эффектов наведения
                         'primary-dark': '#6A37D0', // Для темного акцента
-=======
-                        'primary': '#8045FF', // APhB Default
-                        'primary-light': '#9B70FF', 
-                        'primary-dark': '#6A37D0', 
->>>>>>> parent of 577bf0a (Revert "shitty version that tried to update in real time using multiple socketio channels")
                         'background-light': '#F8F8FF', // Светлый фон
                         'text-dark': '#1F2937', // Темный текст
                         
@@ -33,10 +23,6 @@
                         'APhB-color': '#8045FF', // Фиолетовый
                         'NChB-color': '#259BC0', // Голубой
                         'AMB-color': '#415EDF',  // Синий
-                        'GNB-color': '#FF9800',  // Оранжевый
-                        'WDB-color': '#4CAF50',  // Зеленый
-                        'EEB-color': '#F44336',  // Красный
-                        // ------------------------------------
                     },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
@@ -45,34 +31,20 @@
             }
         }
     </script>
-    
     <style>
-        /* Глобальные стили и стилизация */
         body {
             background-color: theme('colors.background-light');
             min-height: 100vh;
-            padding: 0;
-            margin: 0;
         }
-        
         .ranking-card {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-<<<<<<< HEAD
             position: relative;
         }
         .ranking-card:hover {
             transform: translateY(-3px);
-            /* Усиленный эффект тени, связанный с primary-dark для привлечения внимания */
             box-shadow: 0 10px 20px rgba(106, 55, 208, 0.25); 
-=======
-            position: relative; /* Важно для FLIP */
         }
-        .ranking-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(128, 69, 255, 0.3); 
->>>>>>> parent of 577bf0a (Revert "shitty version that tried to update in real time using multiple socketio channels")
-        }
-
+        
         @keyframes fadeInDown {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -81,211 +53,149 @@
             animation: fadeInDown 0.6s ease-out;
         }
 
-<<<<<<< HEAD
-        /* --- ДИНАМИЧЕСКИЕ ЦВЕТА КАРТОЧЕК --- */
-        
-        /* Цвета границ */
+        /* --- ДИНАМИЧЕСКИЕ ЦВЕТА КАРТОЧЕК И ТЕКСТА --- */
+        /* Граница карточки (верх) */
         .border-APhB { border-top-color: theme('colors.APhB-color') !important; }
         .border-NChB { border-top-color: theme('colors.NChB-color') !important; }
         .border-AMB { border-top-color: theme('colors.AMB-color') !important; }
-        .border-GNB { border-top-color: theme('colors.GNB-color') !important; }
-        .border-WDB { border-top-color: theme('colors.WDB-color') !important; }
-        .border-EEB { border-top-color: theme('colors.EEB-color') !important; }
-
-        /* Цвета кнопок */
+        /* Фон карточки (ОЧЕНЬ СВЕТЛЫЙ) */
+        .bg-APhB-light { background-color: rgba(128, 69, 255, 0.05); } 
+        .bg-NChB-light { background-color: rgba(37, 155, 192, 0.05); } 
+        .bg-AMB-light { background-color: rgba(65, 94, 223, 0.05); }
+        /* Текст заголовка */
+        .text-APhB { color: theme('colors.APhB-color') !important; }
+        .text-NChB { color: theme('colors.NChB-color') !important; }
+        .text-AMB { color: theme('colors.AMB-color') !important; }
+        /* Кнопка */
         .link-APhB { background-color: theme('colors.APhB-color'); }
         .link-NChB { background-color: theme('colors.NChB-color'); }
         .link-AMB { background-color: theme('colors.AMB-color'); }
-        .link-GNB { background-color: theme('colors.GNB-color'); }
-        .link-WDB { background-color: theme('colors.WDB-color'); }
-        .link-EEB { background-color: theme('colors.EEB-color'); }
-
-        /* Цвета иконок (ИСПРАВЛЕНИЕ) */
-        .icon-color-APhB { color: theme('colors.APhB-color'); }
-        .icon-color-NChB { color: theme('colors.NChB-color'); }
-        .icon-color-AMB { color: theme('colors.AMB-color'); }
-        .icon-color-GNB { color: theme('colors.GNB-color'); }
-        .icon-color-WDB { color: theme('colors.WDB-color'); }
-        .icon-color-EEB { color: theme('colors.EEB-color'); }
-        /* ----------------------------------------------------------------------- */
         
-        /* Стили для TOP-1 */
+        /* --- ИСПРАВЛЕННЫЕ СТИЛИ ТОП-3 (УНИФИЦИРОВАННЫЙ ЦВЕТ) --- */
+        
+        /* TOP 2-3 - Мягкий акцент */
+        .highlight-top3 {
+            border-left: 2px solid theme('colors.primary') !important; 
+            background-color: rgba(155, 112, 255, 0.1) !important; /* light primary with transparency */
+            font-weight: 600; /* Semi bold */
+        }
+
+        /* TOP 1 - Использует тот же цвет, но сильнее акцент (толще рамка, жирнее шрифт) */
         .highlight-top1 {
-            border-left: 4px solid theme('colors.primary'); /* Используем основной цвет для TOP-1 */
-=======
-        /* Пользовательские цвета турниров для JS */
-        .color-APhB { --main-color: #8045FF; --light-bg: #F5F3FF; } 
-        .color-NChB { --main-color: #259BC0; --light-bg: #F0F9FF; } 
-        .color-AMB  { --main-color: #415EDF; --light-bg: #EFF6FF; } 
-        
-        /* Применение переменных */
-        .card-header {
-            color: var(--main-color);
-            background-color: var(--light-bg);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        .card-border {
-            border-top-color: var(--main-color) !important; 
-        }
-        .full-ranking-button {
-            background-color: var(--main-color) !important; 
-        }
-
-        /* --- Стилизация, имитирующая таблицу с колонками --- */
-        .grid-header, .team-row {
-            display: grid;
-            /* Настройка колонок: Ранг (50px), Команда (авто), Сумма (80px), Туры (5 колонок по 50px) */
-            grid-template-columns: 50px 1fr 80px repeat(5, 50px); 
-            gap: 4px;
-            align-items: center;
-            text-align: center;
+            border-left: 4px solid theme('colors.primary-dark') !important; 
+            background-color: rgba(155, 112, 255, 0.15) !important; /* Чуть темнее фон для 1-го места */
+            color: theme('colors.text-dark') !important;
+            box-shadow: 0 0 8px rgba(106, 55, 208, 0.1); /* Легкая тень */
+            font-weight: 800; /* Extra bold */
         }
         
-        .grid-header {
-            @apply px-1 py-2 text-left text-xs sm:text-sm font-medium uppercase tracking-wider text-gray-600 bg-gray-50;
+        /* --- ИСПРАВЛЕНИЕ CLS (Резкое Изменение Размера) --- */
+        .ranking-list-stable {
+            min-height: 200px; /* Фиксируем минимальную высоту контейнера списка */
+            padding-bottom: 8px; 
         }
         
-        /* Стили для строки команды (КЛЮЧЕВОЙ ДЛЯ АНИМАЦИИ) */
-        .team-row {
-            @apply px-1 py-2 text-xs sm:text-sm text-gray-800;
-            /* Плавное перемещение: 0.6 секунды - идеально для заметности */
-            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.6s ease, background-color 0.3s; 
-            will-change: transform, opacity;
-            position: relative; /* Важно для transform */
-        }
-
-        .ranking-list {
-            @apply divide-y divide-gray-100;
+        /* Плавные переходы для всех анимируемых свойств */
+        .ranking-item-transition {
+            transition: all 0.4s ease-in-out; 
         }
         
-        /* Класс, который временно отключает переход при инверсии (I) */
-        .inverted {
-            transition: none !important;
+        /* Фиксированная ширина для счета (важно для предотвращения горизонтальных скачков) */
+        .fixed-score-width {
+            width: 70px; 
+            text-align: right; /* Выравнивание счета вправо */
         }
         
-        /* Стиль для исчезающих/появляющихся элементов */
-        .team-row.fading-out {
-            opacity: 0 !important;
+        /* Анимация обновления счета (мигание) */
+        @keyframes scoreFlash {
+            0% { opacity: 0.5; transform: scale(1.05); color: theme('colors.primary-dark'); }
+            50% { opacity: 1; transform: scale(1.0); }
+            100% { opacity: 1; }
         }
-        .team-row.new-in {
-            opacity: 0;
-        }
-
-
-        /* Стили ячеек */
-        .rank-cell {
-            @apply text-center font-bold text-sm sm:text-base;
-        }
-        .team-name-cell {
-            @apply text-left font-semibold truncate;
-        }
-        .score-cell {
-            @apply text-right font-bold font-mono;
-        }
-        .tour-score-cell {
-            @apply text-center text-gray-700 font-mono;
+        .score-flash {
+            animation: scoreFlash 0.5s ease-out;
         }
 
-        /* Выделение ТОП-3 */
-        .rank-highlight-top3 {
-             background-color: var(--main-color) !important; 
-             color: white !important;
-             font-weight: 700;
-             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-             border-radius: 4px;
-             @apply py-0.5 px-1.5;
->>>>>>> parent of 577bf0a (Revert "shitty version that tried to update in real time using multiple socketio channels")
-        }
     </style>
 </head>
-<body class="p-0 m-0">
-    <!-- Заголовок и навигация -->
-    <header class="pt-8 pb-4 px-4 sm:px-8 text-center bg-white shadow-sm border-b border-gray-200 mb-6 animated-header">
+<body class="p-4 sm:p-8">
+    <header class="text-center mb-10 animated-header">
         <h1 class="text-4xl sm:text-5xl font-extrabold text-primary-dark mb-2">
-<<<<<<< HEAD
-            <i class="fas fa-trophy mr-3 text-primary"></i> National Science Battles 2025 - Рейтинги Команд
-=======
-            <i class="fas fa-microscope mr-3 text-primary"></i> NSB 2025 - Live Дашборд Рейтингов
->>>>>>> parent of 577bf0a (Revert "shitty version that tried to update in real time using multiple socketio channels")
+            <i class="mr-3 text-primary"></i> National Science Battles 2025 - Рейтинги Команд
         </h1>
-        <p class="text-lg text-gray-600">Сводка по всем турнирам и лигам в реальном времени (ТОП-10)</p>
-        
-        <nav class="mt-6 flex justify-center space-x-4">
-            <a href="/jury_input" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-md text-sm sm:text-base">
-                Ввод Баллов Жюри
-            </a>
-            <a href="/" class="text-indigo-600 border border-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-50 transition-colors text-sm sm:text-base">
-                Главная
-            </a>
-        </nav>
+        <p class="text-lg text-gray-600">Сводка по всем турнирам и лигам в реальном времени</p>
     </header>
 
-<<<<<<< HEAD
     <!-- ОСНОВНОЙ КОНТЕЙНЕР ДЛЯ ГРУППИРОВКИ ПО ЛИГАМ -->
     <div class="space-y-12">
+        {# Переменная 'data' приходит сгруппированной по ключам 'Senior' и 'Junior' #}
         {% if data %}
-            {% for league_name, tournaments in data.items() %}
-                <section class="mb-10">
-                    <h2 class="text-3xl font-extrabold text-text-dark mb-6 border-b-2 border-primary-light pb-2">
-                        Лига {{ league_name | capitalize }}
-                    </h2>
+            {% for league_level in leagues %}
+                {% if data[league_level] %}
+                    <section class="mb-10">
+                        {# УДАЛЕНО: Заголовок Лиги #}
 
-                    <!-- КОНТЕЙНЕР ДЛЯ ТУРНИРОВ ВНУТРИ ОДНОЙ ЛИГИ -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {% for item in tournaments %}
-                            {# ШАГ 1: Создаем динамический класс для границы #}
-                            {% set border_class = 'border-' + item.tournament_id %}
-                            {# ШАГ 2: Создаем динамический класс для кнопки #}
-                            {% set button_class = 'link-' + item.tournament_id %}
-                            {# ШАГ 3: Создаем динамический класс для иконки (ИСПРАВЛЕНИЕ) #}
-                            {% set icon_color_class = 'icon-color-' + item.tournament_id %}
-                            
-                            <div class="ranking-card bg-white p-6 rounded-xl shadow-lg border-t-4 {{ border_class }}">
+                        <!-- КОНТЕЙНЕР ДЛЯ ТУРНИРОВ ВНУТРИ ОДНОЙ ЛИГИ -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                            {% for item in data[league_level] %}
+                                {# item: {'title': 'APhB (Senior)', 'data': [...], 'tournament_id': 'APhB', 'league_level': 'Senior'} #}
+                                {% set tournament_id = item.tournament_id %}
+                                {% set border_class = 'border-' + tournament_id %}
+                                {% set text_color_class = 'text-' + tournament_id %}
+                                {% set bg_class = 'bg-' + tournament_id + '-light' %} {# НОВЫЙ КЛАСС ФОНА КАРТОЧКИ #}
+                                {% set button_class = 'link-' + tournament_id %}
                                 
-                                <h3 class="text-2xl font-bold mb-4 text-text-dark border-b pb-2 border-gray-100">
-                                    {# Добавляем иконку для визуализации, используя новый класс #}
-                                    <i class="fas fa-medal mr-2 opacity-80 {{ icon_color_class }}"></i>
-                                    {{ item.title }}
-                                </h3>
-                                
-                                <ol class="space-y-3">
-                                    {% for team in item.data[:5] %} 
-                                        {# Выделяем ТОП-1 #}
-                                        <li class="flex justify-between items-center text-lg p-2 rounded-lg transition duration-200 
-                                            {% if team.rank == 1 %} highlight-top1 bg-primary-light/10 font-extrabold text-primary-dark 
-                                            {% else %} hover:bg-gray-50/50 {% endif %}">
-                                            
-                                            <span class="w-1/12 text-center text-xl">{{ team.rank }}.</span>
-                                            <span class="w-8/12 truncate text-text-dark">{{ team.team_name }}</span>
-                                            {# Форматирование балла до двух знаков после запятой #}
-                                            <span class="w-3/12 text-right font-mono text-xl">{{ "%.2f" | format(team.total_score) }}</span>
-                                        </li>
-                                    {% endfor %}
-                                </ol>
+                                <div class="ranking-card p-6 rounded-xl shadow-lg border-t-4 {{ border_class }} {{ bg_class }}">
+                                    
+                                    {# ИСПРАВЛЕНИЕ: Используем {{ text_color_class }} для цвета текста заголовка #}
+                                    <h3 class="text-2xl font-bold mb-4 {{ text_color_class }} border-b pb-2 border-gray-100">
+                                        <i class="mr-2 opacity-80"></i>
+                                        {{ item.title }}
+                                    </h3>
+                                    
+                                    <!-- Добавлен ID для JS-обновления -->
+                                    <ol id="ranking-list-{{ item.tournament_id }}_{{ item.league_level }}"
+                                        class="space-y-3 ranking-list-stable">
+                                        
+                                        <!-- Рендеринг ТОП-5 для начальной загрузки -->
+                                        {% for team in item.data[:5] %} 
+                                            {% set is_top_1 = team.rank == 1 %}
+                                            {% set is_top_3 = team.rank <= 3 and team.rank != 1 %}
 
-                                <div class="mt-5 text-center">
-                                    <a href="{{ url_for('show_ranking', tournament_id=item.tournament_id, league_level=item.league_level) }}" 
-                                       class="inline-block px-4 py-2 text-sm font-semibold text-white {{ button_class }} rounded-lg hover:opacity-90 transition duration-200 shadow-md">
-                                        Показать Полный Рейтинг
-                                        <i class="fas fa-arrow-right ml-2"></i>
-                                    </a>
+                                            <li class="flex justify-between items-center p-2 rounded-lg ranking-item-transition
+                                                {% if is_top_1 %} highlight-top1 
+                                                {% elif is_top_3 %} highlight-top3
+                                                {% else %} hover:bg-gray-50/50 {% endif %}">
+                                                
+                                                <span class="w-1/12 text-center text-xl">{{ team.rank }}.</span>
+                                                <span class="w-8/12 truncate text-text-dark">{{ team.team_name }}</span>
+                                                <span class="text-right font-mono text-xl fixed-score-width">
+                                                    {{ "%.2f" | format(team.total_score) }}
+                                                </span>
+                                            </li>
+                                        {% endfor %}
+                                    </ol>
+
+                                    <div class="mt-5 text-center">
+                                        <a href="{{ url_for('show_ranking', tournament_id=item.tournament_id, league_level=item.league_level) }}" 
+                                           class="inline-block px-4 py-2 text-sm font-semibold text-primary {{ button_class }} rounded-lg hover:opacity-90 transition duration-200 shadow-md">
+                                            Показать Полный Рейтинг
+                                            <i class="fas fa-arrow-right ml-2"></i>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </section>
+                            {% endfor %}
+                        </div>
+                    </section>
+                {% endif %}
             {% endfor %}
         {% else %}
-            {# Сообщение, если переменная 'data' пуста #}
             <div class="text-center py-12 bg-white rounded-xl shadow-lg border-t-4 border-red-400">
                 <p class="text-xl text-red-700 font-semibold mb-2">
                     <i class="fas fa-bug mr-2"></i> Ошибка Загрузки Данных
                 </p>
                 <p class="text-lg text-gray-600">
-                    Не удалось загрузить ни одного рейтинга. Проверьте, что функция 
-                    <code class="bg-gray-100 p-1 rounded font-mono">all_rankings_dashboard</code> 
-                    в <code class="bg-gray-100 p-1 rounded font-mono">app.py</code> возвращает словарь, 
-                    сгруппированный по лигам.
+                    Не удалось загрузить ни одного рейтинга. 
                 </p>
             </div>
         {% endif %}
@@ -293,353 +203,88 @@
 
     <footer class="text-center mt-12 text-gray-500 text-sm py-4">
         <p>Система Рейтинга NSB Live | Работает на PostgreSQL и SocketIO</p>
-=======
-    <!-- Контейнер для всех 6 рейтингов: Используем lg:grid-cols-3 для 3 колонок на больших экранах -->
-    <div id="rankings-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 md:p-6 opacity-0">
-        
-        <!-- Сообщение о загрузке/ошибке -->
-        <div id="loading-status" class="col-span-full p-6 bg-white rounded-xl shadow-lg border border-indigo-300 text-center">
-            <div class="flex items-center justify-center space-x-3">
-                <svg class="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p class="text-lg text-indigo-700">Подключение к серверу и ожидание данных...</p>
-            </div>
-            <p id="error-message" class="text-red-500 mt-2 hidden">
-                Ошибка: Не удалось загрузить данные. Проверьте консоль и убедитесь, что ваш Flask-сервер запущен с SocketIO.
-            </p>
-        </div>
-
-    </div>
-    
-    <footer class="text-center mt-12 text-gray-500 text-sm py-4">
-        <p>Система Рейтинга NSB Live | Работает на Flask-SocketIO</p>
->>>>>>> parent of 577bf0a (Revert "shitty version that tried to update in real time using multiple socketio channels")
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script>
-<<<<<<< HEAD
-        // JS: Здесь не требуется логика Socket.IO
-=======
+        // Инициализация Socket.IO
         const socket = io();
-        const rankingsContainer = document.getElementById('rankings-container');
-        const loadingStatus = document.getElementById('loading-status');
-        const errorMessage = document.getElementById('error-message');
-        
-        // Заглушка, если Jinja не передал данные
-        const initialData = {}; 
 
-        // Список ключей, которые мы ожидаем получить от сервера.
-        const expectedKeys = [
-            'APhB_Senior', 'NChB_Senior', 'AMB_Senior',
-            'APhB_Junior', 'NChB_Junior', 'AMB_Junior'
-        ];
+        // Карта для хранения старых баллов для сравнения и ключей команды
+        let oldScores = {}; 
 
-        // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-
-        function formatScore(score) {
-            // Форматируем счет до двух знаков после запятой
-            return parseFloat(score).toFixed(2);
-        }
-        
-        function getTournamentKey(tournamentId) {
-            return tournamentId.toUpperCase();
-        }
-
-        /**
-         * Генерирует HTML-строку для внутреннего содержимого строки команды.
-         */
-        function createTeamRowInnerHtml(team, tourKey) {
-            const rankClass = team.rank <= 3 ? 'rank-highlight-top3' : 'text-gray-600';
+        socket.on('dashboard_update', (data) => {
+            // Data - это объект: {'APhB_Senior': {...}, 'NChB_Junior': {...}, ...}
             
-            // Форматирование ячеек туров
-            let tourCells = '';
-            for (let i = 1; i <= 5; i++) {
-                const score = team.tour_scores ? (team.tour_scores[i] || 0.0) : 0.0;
-                // Добавляем класс, чтобы можно было найти ячейку по индексу
-                tourCells += `<div class="tour-score-cell tour-cell-${i}">${formatScore(score)}</div>`;
+            for (const key in data) {
+                if (data.hasOwnProperty(key)) {
+                    // Используем setTimeout, чтобы браузер успел обработать предыдущие изменения DOM,
+                    // прежде чем начнется анимация
+                    setTimeout(() => updateRankingCard(data[key], key), 50); 
+                }
             }
+        });
 
-            return `
-                <!-- 1. Ранг -->
-                <div class="rank-cell">
-                    <span class="${rankClass}" data-role="rank-span">${team.rank}</span>
-                </div>
-
-                <!-- 2. Имя Команды -->
-                <div class="team-name-cell">
-                    ${team.team_name}
-                </div>
-
-                <!-- 3. Общий Счет (Сумма) -->
-                <div class="score-cell" data-role="score-cell">
-                    ${formatScore(team.total_score)}
-                </div>
-                
-                <!-- 4. Туры Т1-Т5 -->
-                ${tourCells}
-            `;
-        }
-
-
-        // --- ФУНКЦИИ ДЛЯ РЕНДЕРИНГА (FLIP LOGIC) ---
-        
-        /**
-         * Создает или обновляет DOM-элементы для одной карточки рейтинга, 
-         * применяя FLIP анимацию для плавного перемещения строк.
-         */
-        function animateRankingUpdate(containerId, rankingData, tournamentId, leagueLevel) {
-            const tourKey = getTournamentKey(tournamentId);
-            let container = document.getElementById(containerId);
+        function updateRankingCard(rankingData, key) {
+            const listId = `ranking-list-${key}`;
+            const listElement = document.getElementById(listId);
             
-            // Берем только ТОП-10
-            const limitedData = rankingData.slice(0, 10); 
-            
-            // --- 0. Initial Render Setup ---
-            if (!container) {
-                // ... (Код создания карточки остается прежним, но listEl пока пуст)
-                const card = document.createElement('div');
-                card.id = containerId;
-                card.className = `ranking-card bg-white rounded-xl shadow-lg border-t-4 card-border color-${tourKey} flex flex-col overflow-hidden`;
+            if (!listElement) return;
 
-                const header = `<div class="p-4 card-header">
-                                    <h2 class="text-xl font-bold text-text-dark">${tournamentId} (${leagueLevel})</h2>
-                                </div>`;
+            // Создаем новый HTML-контент для Топ-5, используя template literals
+            let newHtml = '';
+            rankingData.data.slice(0, 5).forEach((team, index) => {
+                // Уникальный ключ для отслеживания счета команды
+                const teamKey = `${key}_${team.team_id}`; 
+                const teamRank = team.rank;
                 
-                const headerRow = `<div class="grid-header">
-                                    <div class="rank-cell">#</div>
-                                    <div class="team-name-cell">Команда</div>
-                                    <div class="score-cell">Сумма</div>
-                                    <div class="tour-score-cell">Т1</div>
-                                    <div class="tour-score-cell">Т2</div>
-                                    <div class="tour-score-cell">Т3</div>
-                                    <div class="tour-score-cell">Т4</div>
-                                    <div class="tour-score-cell">Т5</div>
-                                </div>`;
+                const currentScore = parseFloat(team.total_score.toFixed(2));
                 
-                const listContainerHtml = `<div class="ranking-list flex-grow w-full overflow-x-auto" style="min-width: 550px;" data-list-id="${containerId}-list"></div>`;
-                const footer = `<div class="p-4 text-center border-t border-gray-100 mt-auto">
-                                    <a href="/ranking/${tournamentId}/${leagueLevel}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg text-white shadow-md hover:opacity-90 transition-opacity full-ranking-button">
-                                       Полный Рейтинг <i class="fas fa-arrow-right ml-2"></i>
-                                    </a>
-                                </div>`;
+                // Проверка изменения счета
+                const scoreChanged = oldScores[teamKey] !== undefined && oldScores[teamKey] !== currentScore;
+                oldScores[teamKey] = currentScore; // Обновляем старый счет
 
-                card.innerHTML = header + headerRow + `<div class="p-2 sm:p-4 w-full">${listContainerHtml}</div>` + footer;
-                return card; 
-            }
-            
-            // --- 1. FIRST (Запоминаем начальные позиции) ---
-            const listEl = container.querySelector('.ranking-list');
-            const teamPositions = new Map();
-            const existingRowsMap = new Map();
-
-            listEl.querySelectorAll('.team-row').forEach(row => {
-                const teamId = row.dataset.teamId;
-                teamPositions.set(teamId, row.getBoundingClientRect().top);
-                existingRowsMap.set(teamId, row);
-            });
-
-            // --- 2. LAST (Гранулярное обновление и перестановка DOM) ---
-            const teamsToKeep = new Set();
-
-            limitedData.forEach((newTeam, newIndex) => {
-                const newTeamId = newTeam.team_id;
-                teamsToKeep.add(newTeamId);
-                let row = existingRowsMap.get(newTeamId);
+                // --- ЛОГИКА ДЛЯ ТОП-3 В JAVASCRIPT ---
+                const isTop1 = teamRank === 1;
+                const isTop3 = teamRank <= 3 && teamRank !== 1;
                 
-                // Элемент, перед которым нужно вставить/переместить текущую строку
-                const targetRow = listEl.children[newIndex];
-
-                if (row) {
-                    // --- Существующий элемент: Обновляем содержимое и перемещаем ---
-                    
-                    // 1. Обновляем содержимое (без замены row.innerHTML!)
-                    const rankSpan = row.querySelector('[data-role="rank-span"]');
-                    if(rankSpan) {
-                         rankSpan.textContent = newTeam.rank;
-                         const newRankClass = newTeam.rank <= 3 ? 'rank-highlight-top3' : 'text-gray-600';
-                         rankSpan.className = newRankClass; // Обновляем класс ранга
-                    }
-                   
-                    row.querySelector('.team-name-cell').textContent = newTeam.team_name;
-                    row.querySelector('[data-role="score-cell"]').textContent = formatScore(newTeam.total_score);
-
-                    // Обновляем баллы туров
-                    for (let i = 1; i <= 5; i++) {
-                        const score = newTeam.tour_scores ? (newTeam.tour_scores[i] || 0.0) : 0.0;
-                        const tourCell = row.querySelector(`.tour-cell-${i}`);
-                        if (tourCell) {
-                            tourCell.textContent = formatScore(score);
-                        }
-                    }
-
-                    // 2. Обновляем фон строки (для чередования)
-                    row.className = row.className.replace(/bg-(white|gray-50\/50)/, newIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/50');
-                    
-                    // 3. Перемещаем строку на новую позицию
-                    if (row !== targetRow) {
-                         listEl.insertBefore(row, targetRow);
-                    }
-                    
+                // Определяем классы для плавного перехода
+                let itemClasses = `flex justify-between items-center p-2 rounded-lg ranking-item-transition `;
+                
+                if (isTop1) {
+                    itemClasses += 'highlight-top1 ';
+                } else if (isTop3) {
+                    itemClasses += 'highlight-top3 ';
                 } else {
-                    // --- Новый элемент: Создаем и вставляем ---
-                    row = document.createElement('div');
-                    row.className = `team-row ${newIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-indigo-50/70 transition-colors duration-150 border-b border-gray-100 last:border-b-0 new-in`;
-                    row.dataset.teamId = newTeamId;
-                    row.innerHTML = createTeamRowInnerHtml(newTeam, tourKey);
-                    
-                    // Вставляем новый элемент на место
-                    listEl.insertBefore(row, targetRow);
-                    
-                    // В FLIP новый элемент не имеет "первой" позиции, поэтому оставляем его без инверсии.
-                    // Он плавно появится благодаря классу .new-in.
+                    itemClasses += 'hover:bg-gray-50/50 ';
                 }
-            });
 
-            // --- Удаление выбывших элементов ---
-            existingRowsMap.forEach((row, teamId) => {
-                if (!teamsToKeep.has(teamId)) {
-                    // 1. Применяем класс для плавного исчезновения
-                    row.classList.add('fading-out');
-                    // 2. Удаляем из DOM после завершения анимации
-                    setTimeout(() => {
-                        if (row.parentNode === listEl) {
-                            listEl.removeChild(row);
-                        }
-                    }, 600); // 600ms соответствует длительности transition
-                }
+                // Добавляем класс анимации, если счет изменился
+                const scoreClasses = `font-mono text-xl fixed-score-width ${scoreChanged ? 'score-flash' : ''}`;
+
+                newHtml += `
+                    <li class="${itemClasses}">
+                        <span class="w-1/12 text-center text-xl">${teamRank}.</span>
+                        <span class="w-8/12 truncate text-text-dark">${team.team_name}</span>
+                        <span class="${scoreClasses}">
+                            ${currentScore.toFixed(2)}
+                        </span>
+                    </li>
+                `;
             });
             
-            // --- 3. INVERT (Инвертируем) ---
-            listEl.querySelectorAll('.team-row').forEach(row => {
-                const teamId = row.dataset.teamId;
-
-                // Инвертируем только те элементы, которые были в предыдущем состоянии
-                if (teamPositions.has(teamId) && !row.classList.contains('new-in')) {
-                    const oldY = teamPositions.get(teamId);
-                    const newY = row.getBoundingClientRect().top;
-                    
-                    const deltaY = oldY - newY; 
-
-                    if (deltaY !== 0) {
-                        row.style.transform = `translateY(${deltaY}px)`;
-                        row.classList.add('inverted'); 
-                        row.offsetWidth; // Принудительный reflow
-                    }
-                }
-            });
-
-            // --- 4. PLAY (Воспроизводим анимацию) ---
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => { 
-                    listEl.querySelectorAll('.team-row').forEach(row => {
-                        // Сбрасываем инверсию и transform
-                        row.classList.remove('inverted');
-                        row.style.transform = ''; 
-                        
-                        // Запускаем появление новых элементов
-                        if (row.classList.contains('new-in')) {
-                            row.classList.remove('new-in');
-                        }
-                    });
-                });
-            });
-            
-            return container; 
+            // Замена контента
+            listElement.innerHTML = newHtml;
         }
 
-
-        // --- ФУНКЦИЯ ОБНОВЛЕНИЯ UI (Используется для начальной загрузки и SocketIO) ---
-        function updateUI(data) {
-            loadingStatus.style.display = 'none';
-            errorMessage.classList.add('hidden'); 
-            
-            let dataReceived = false;
-            let tempContainer = document.createElement('div');
-
-            // Итерируем по ожидаемым ключам, чтобы гарантировать правильный порядок 
-            expectedKeys.forEach(key => {
-                const item = data[key];
-                const containerId = `ranking-card-${key}`;
-
-                if (item && item.data && Array.isArray(item.data)) {
-                    dataReceived = true;
-                    
-                    let card = document.getElementById(containerId);
-
-                    if (!card) {
-                        // Создаем и добавляем во временный контейнер
-                        card = animateRankingUpdate(containerId, item.data, item.tournament_id, item.league_level);
-                        tempContainer.appendChild(card); 
-                    } else {
-                        // Обновляем существующую карточку (здесь запускается FLIP)
-                        animateRankingUpdate(containerId, item.data, item.tournament_id, item.league_level);
-                    }
-                }
-            });
-            
-            // Вставляем новые карточки (только на первом рендере)
-            if (tempContainer.children.length > 0) {
-                 // Очищаем существующее сообщение о загрузке/ошибке
-                rankingsContainer.innerHTML = '';
-                
-                // Переносим все дочерние элементы из tempContainer в rankingsContainer
-                expectedKeys.forEach(key => {
-                    const card = tempContainer.querySelector(`#ranking-card-${key}`);
-                    if (card) {
-                        rankingsContainer.appendChild(card);
-                    }
-                });
-            }
-            
-            if (dataReceived) {
-                // Плавное появление основного контейнера после первой загрузки
-                rankingsContainer.style.opacity = '1';
-                rankingsContainer.style.transition = 'opacity 0.5s ease';
-            } else {
-                loadingStatus.style.display = 'block';
-                errorMessage.textContent = 'Ошибка: Данные рейтинга пусты. Проверьте JSON-файлы команд и подключение к БД.';
-                errorMessage.classList.remove('hidden'); 
-            }
-        }
-
-
-        // --- ЛОГИКА SOCKET.IO И ИНИЦИАЛИЗАЦИЯ ---
-
-        socket.on('dashboard_update', function(data) {
-            // Socket.IO присылает данные, используем функцию обновления UI
-            console.log(`[${new Date().toLocaleTimeString()}] Socket.IO получил обновление. Запуск FLIP анимации.`);
-            updateUI(data); 
-        });
-
-        socket.on('connect_error', (err) => {
-            console.error('Ошибка соединения Socket.IO:', err);
-            loadingStatus.style.display = 'block';
-            errorMessage.classList.remove('hidden'); 
-            errorMessage.textContent = 'Ошибка подключения к серверу Socket.IO. Убедитесь, что Flask запущен с socketio.run(app) и нет ошибок в базе данных.';
-        });
-
-        socket.on('connect', () => {
-            console.log('Socket.IO успешно подключен.');
-        });
-        
-        // --- НАЧАЛЬНАЯ ЗАГРУЗКА ---
+        // Инициализируем старые баллы после загрузки, чтобы первое обновление не мигало
         document.addEventListener('DOMContentLoaded', () => {
-            // Если Jinja передал данные, используем их
-            if (initialData && Object.keys(initialData).length > 0) {
-                console.log('Начальная загрузка данных из Jinja. Запуск первого рендера.');
-                updateUI(initialData);
-            } else {
-                // Если Jinja не передал данные, показываем статус загрузки и ждем SocketIO
-                loadingStatus.style.display = 'block';
-                // Скрываем контейнер, пока не придут первые данные
-                rankingsContainer.style.opacity = '0';
-            }
+            // Заполнение oldScores при первом рендере для предотвращения мигания на старте
+            document.querySelectorAll('[id^="ranking-list-"]').forEach(list => {
+                // Нам нужен team_id в Jinja-рендере, чтобы точно заполнить oldScores. 
+                // Пока этого нет, полагаемся на первое обновление Socket.IO.
+            });
         });
-
->>>>>>> parent of 577bf0a (Revert "shitty version that tried to update in real time using multiple socketio channels")
     </script>
-
 </body>
 </html>
