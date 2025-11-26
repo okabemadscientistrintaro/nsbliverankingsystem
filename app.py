@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch() # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Патчим стандартные библиотеки для асинхронной работы eventlet
 import threading
 import time
 from flask import Flask, render_template, request, jsonify, redirect, url_for
