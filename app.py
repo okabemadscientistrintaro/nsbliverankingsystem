@@ -410,4 +410,9 @@ if __name__ == '__main__':
     
     # Для работы с Flask-SocketIO и потоками, 
     # лучше использовать socketio.run, который сам выбирает нужный сервер.
-    socketio.run(app, debug=True)
+    
+    # ИСПОЛЬЗУЕМ os.environ.get('PORT', 5000), ЧТОБЫ АВТОМАТИЧЕСКИ ПЕРЕКЛЮЧАТЬСЯ МЕЖДУ 
+    # ТЕСТОВЫМ ПОРТОМ (5000) И ПОРТОМ, ПРЕДОСТАВЛЕННЫМ RAILWAY.
+    port = int(os.environ.get('PORT', 5000))
+    print(f"Приложение будет слушать на порту: {port}")
+    socketio.run(app, host='0.0.0.0', port=port, debug=True)
