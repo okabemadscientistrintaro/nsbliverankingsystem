@@ -6,11 +6,10 @@ from flask_socketio import SocketIO, emit, join_room
 from datetime import datetime
 import json
 from sqlalchemy import Table, Column, Integer, Float, DateTime, select, update, insert
-import os # Добавлен для работы с путями к файлам JSON
+import os 
 
 app = Flask(__name__)
 # ВАШЕ ПОДКЛЮЧЕНИЕ К БД:
-# ВАЖНО: замените на реальный URL вашей базы данных
 DATABASE_URL = 'postgresql+psycopg2://neondb_owner:npg_XTVb48QSFkPz@ep-dark-silence-adah8o3x-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -23,8 +22,9 @@ app.config['SQLALCHEMY_POOL_TIMEOUT'] = 10
 # ------------------------------------
 
 db = SQLAlchemy(app)
-# Используем gevent для лучшей производительности в асинхронной среде
-socketio = SocketIO(app, async_mode='gevent', cors_allowed_origins="*")
+# ИСПРАВЛЕНО: Удален конфликтный параметр async_mode, чтобы SocketIO автоматически 
+# использовал eventlet, который указан в Procfile.
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # ------------------------------------------------------------------
 # ГЛОБАЛЬНЫЕ НАСТРОЙКИ
@@ -47,13 +47,7 @@ def load_teams_from_json(tournament_id, league_level):
     filename = f"{key}.json" # Предполагаем, что файлы JSON лежат рядом с app.py
     
     try:
-        # В реальном приложении это потребует адаптации в зависимости от того, как
-        # хранятся файлы (например, если они загружены как Markdown-файлы,
-        # потребуется парсинг этого Markdown-контента).
-        # Здесь предполагаем чтение чистого JSON.
         with open(filename, 'r', encoding='utf-8') as f:
-            # ПРИМЕЧАНИЕ: Если файлы были переданы в Markdown блоках, 
-            # здесь может потребоваться дополнительная обработка для извлечения JSON.
             teams = json.load(f) 
             if isinstance(teams, list):
                 return teams
@@ -252,13 +246,24 @@ def index():
 @app.route('/ranking/<string:tournament_id>/<string:league_level>')
 def show_ranking(tournament_id, league_level):
     """Показывает рейтинг для одного турнира/лиги."""
-    # Для этого маршрута требуется отдельный HTML-шаблон (ranking_template.html)
     display_level = league_level.capitalize()
     title = f"{tournament_id}: {display_level} Лига"
+    
+    # ВАЖНО: для url_for('all_rankings_dashboard') в шаблоне, 
+    # нужно передать ссылку, так как Flask не может вызвать url_for 
+    # из функции, которая не является представлением, 
+    # или если представление не определено стандартным образом.
+    # Используем заглушку, которая вызывает url_for в контексте приложения
+    def url_for_in_template(endpoint, **values):
+        with app.app_context():
+            return url_for(endpoint, **values)
+        
     return render_template('ranking_template.html', 
                            title=title,
                            tournament_id=tournament_id, 
-                           league_level=league_level)
+                           league_level=league_level,
+                           url_for=url_for_in_template) # Передаем функцию
+                           
 
 
 @app.route('/all_rankings')
@@ -342,7 +347,7 @@ def jury_input():
                         break
                 if found_team:
                     break
-                    
+                
         if not found_team:
             return jsonify({"success": False, "message": f"Команда с ID {team_id} не найдена в данных"}), 404
         
@@ -403,5 +408,6 @@ if __name__ == '__main__':
     update_thread.start()
     print("Сервер запущен. Фоновое SocketIO вещание начато.")
     
-    # ВАЖНО: При использовании gevent/async_mode='gevent' используйте socketio.run
+    # Для работы с Flask-SocketIO и потоками, 
+    # лучше использовать socketio.run, который сам выбирает нужный сервер.
     socketio.run(app, debug=True)
